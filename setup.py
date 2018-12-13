@@ -34,7 +34,7 @@ setup(
     ),
     author='Simon Hilpert',
     author_email='simon.hilpert@uni-flensburg.de',
-    url='https://github.com/simnh/fuchur',
+    url='https://github.com/znes/fuchur',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],

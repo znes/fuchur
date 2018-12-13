@@ -31,7 +31,7 @@ default_context:
     distribution_name:         'fuchur'
     email:                     'simon.hilpert@uni-flensburg.de'
     full_name:                 'Simon Hilpert'
-    github_username:           'simnh'
+    github_username:           'znes'
     landscape:                 'no'
     license:                   'BSD 3-Clause License'
     linter:                    'flake8'

@@ -31,8 +31,8 @@ version = release = '0.0.0'
 pygments_style = 'trac'
 templates_path = ['.']
 extlinks = {
-    'issue': ('https://github.com/simnh/fuchur/issues/%s', '#'),
-    'pr': ('https://github.com/simnh/fuchur/pull/%s', 'PR #'),
+    'issue': ('https://github.com/znes/fuchur/issues/%s', '#'),
+    'pr': ('https://github.com/znes/fuchur/pull/%s', 'PR #'),
 }
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'

@@ -22,37 +22,37 @@ Overview
     :alt: Documentation Status
 
 
-.. |travis| image:: https://travis-ci.org/simnh/fuchur.svg?branch=master
+.. |travis| image:: https://travis-ci.org/znes/fuchur.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/simnh/fuchur
+    :target: https://travis-ci.org/znes/fuchur
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/simnh/fuchur?branch=master&svg=true
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/znes/fuchur?branch=master&svg=true
     :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/simnh/fuchur
+    :target: https://ci.appveyor.com/project/znes/fuchur
 
-.. |requires| image:: https://requires.io/github/simnh/fuchur/requirements.svg?branch=master
+.. |requires| image:: https://requires.io/github/znes/fuchur/requirements.svg?branch=master
     :alt: Requirements Status
-    :target: https://requires.io/github/simnh/fuchur/requirements/?branch=master
+    :target: https://requires.io/github/znes/fuchur/requirements/?branch=master
 
-.. |coveralls| image:: https://coveralls.io/repos/simnh/fuchur/badge.svg?branch=master&service=github
+.. |coveralls| image:: https://coveralls.io/repos/znes/fuchur/badge.svg?branch=master&service=github
     :alt: Coverage Status
-    :target: https://coveralls.io/r/simnh/fuchur
+    :target: https://coveralls.io/r/znes/fuchur
 
-.. |codecov| image:: https://codecov.io/github/simnh/fuchur/coverage.svg?branch=master
+.. |codecov| image:: https://codecov.io/github/znes/fuchur/coverage.svg?branch=master
     :alt: Coverage Status
-    :target: https://codecov.io/github/simnh/fuchur
+    :target: https://codecov.io/github/znes/fuchur
 
-.. |codeclimate| image:: https://codeclimate.com/github/simnh/fuchur/badges/gpa.svg
-   :target: https://codeclimate.com/github/simnh/fuchur
+.. |codeclimate| image:: https://codeclimate.com/github/znes/fuchur/badges/gpa.svg
+   :target: https://codeclimate.com/github/znes/fuchur
    :alt: CodeClimate Quality Status
 
 .. |version| image:: https://img.shields.io/pypi/v/fuchur.svg
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/fuchur
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/simnh/fuchur/v0.0.0.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/znes/fuchur/v0.0.0.svg
     :alt: Commits since latest release
-    :target: https://github.com/simnh/fuchur/compare/v0.0.0...master
+    :target: https://github.com/znes/fuchur/compare/v0.0.0...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/fuchur.svg
     :alt: PyPI Wheel
@@ -66,9 +66,9 @@ Overview
     :alt: Supported implementations
     :target: https://pypi.org/project/fuchur
 
-.. |scrutinizer| image:: https://img.shields.io/scrutinizer/g/simnh/fuchur/master.svg
+.. |scrutinizer| image:: https://img.shields.io/scrutinizer/g/znes/fuchur/master.svg
     :alt: Scrutinizer Status
-    :target: https://scrutinizer-ci.com/g/simnh/fuchur/
+    :target: https://scrutinizer-ci.com/g/znes/fuchur/
 
 
 .. end-badges
