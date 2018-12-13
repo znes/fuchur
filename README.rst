@@ -28,7 +28,7 @@ Overview
 
 .. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/znes/fuchur?branch=master&svg=true
     :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/znes/fuchur
+    :target: https://ci.appveyor.com/project/simnh/fuchur
 
 .. |requires| image:: https://requires.io/github/znes/fuchur/requirements.svg?branch=master
     :alt: Requirements Status
