@@ -94,31 +94,31 @@ def _construct(config, ctx):
     type=bool,
     help="Flag if constructed model is computed.",
 )
-
+@click.option(
+    "--construct",
+    default=False,
+    type=bool,
+    help="Flag if model is constructed.",
+)
 
 @click.pass_context
-def cli(ctx, solver, datapackage_dir, results_dir, compute):
+def cli(ctx, solver, datapackage_dir, results_dir, compute, construct):
     ctx.obj["SOLVER"] = solver
     ctx.obj["DATPACKAGE_DIR"] = datapackage_dir
     ctx.obj["RESULTS_DIR"] = results_dir
     ctx.obj["COMPUTE"] = compute
+    ctx.obj["CONSTRUCT"] = construct
 @cli.command()
 @click.argument("config", type=str, default="config.json")
 @click.pass_context
-def run(ctx, config):
+def fire(ctx, config):
     config = datapackage.building.get_config(config)
 
-    _construct(config, ctx)
+    if ctx.obj["CONSTRUCT"]:
+        _construct(config, ctx)
 
     if ctx.obj["COMPUTE"]:
         _compute.compute(config, ctx)
-
-# @cli.command()
-# @click.argument("config", type=str, default="config.json")
-# @click.pass_context
-# def compute(ctx, config):
-#     config = datapackage.building.get_config(config)
-
 
 def main():
     cli(obj={})
