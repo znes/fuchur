@@ -15,7 +15,7 @@ from oemof.solph import EnergySystem, Model, Bus, Sink, constraints
 from oemof.solph.components import GenericStorage
 
 
-def compute(config, datapackage_dir, results_dir):
+def compute(config, ctx):
     """
     """
 
@@ -23,7 +23,7 @@ def compute(config, datapackage_dir, results_dir):
     emission_limit = config.get("emission-limit")
 
     # create results path
-    scenario_path = os.path.join(results_dir, config["name"])
+    scenario_path = os.path.join(ctx.obj["RESULTS_DIR"], config["name"])
     if not os.path.exists(scenario_path):
         os.makedirs(scenario_path)
 
@@ -39,14 +39,14 @@ def compute(config, datapackage_dir, results_dir):
     if temporal_resolution > 1:
         logging.info("Aggregating for temporal aggregation ... ")
         path = aggregation.temporal_skip(
-            "datapackage.json",
+            os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
             temporal_resolution,
             path=scenario_path,
             name="exogenous",
         )
     else:
         path = processing.copy_datapackage(
-            "datapackage.json",
+            os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
             os.path.abspath(os.path.join(scenario_path, "exogenous")),
             subset="data",
         )
@@ -63,7 +63,7 @@ def compute(config, datapackage_dir, results_dir):
 
     m.receive_duals()
 
-    m.solve("cbc")
+    m.solve(ctx.obj["SOLVER"])
 
     results = m.results()
 
