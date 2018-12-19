@@ -33,8 +33,8 @@ def construct(config_path, datapackage_dir):
     config = datapackage.building.get_config(config_path)
 
     datapackage.processing.clean_datapackage(
-        path=datapackage_dir,
-        directories=['data', 'resources'])
+        path=datapackage_dir, directories=["data", "resources"]
+    )
 
     datapackage.building.initialize_datapackage(config=config)
 
@@ -55,27 +55,44 @@ def construct(config_path, datapackage_dir):
     capacity_factors.wind(config, datapackage_dir)
 
     datapackage.building.infer_metadata(
-        package_name='angus2',
+        package_name="angus2",
         foreign_keys={
-            'bus': ['volatile', 'dispatchable', 'storage',
-                    'heat_storage', 'load', 'ror', 'reservoir',
-                    'phs', 'excess', 'boiler', 'commodity'],
-            'profile': ['load', 'volatile', 'heat_load', 'ror',
-                        'reservoir'],
-            'from_to_bus': ['link', 'conversion', 'line'],
-            'chp': ['backpressure', 'extraction']
-            }
-        )
+            "bus": [
+                "volatile",
+                "dispatchable",
+                "storage",
+                "heat_storage",
+                "load",
+                "ror",
+                "reservoir",
+                "phs",
+                "excess",
+                "boiler",
+                "commodity",
+            ],
+            "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
+            "from_to_bus": ["link", "conversion", "line"],
+            "chp": ["backpressure", "extraction"],
+        },
+    )
 
-@click.command(help=("Fuchur helps you to create model data and caluculation "
-                     "the model"))
-@click.option('--config', default='config.json',
-              help="Config file to create model input data.")
-@click.option('--datapackage-dir', default=os.getcwd(),
-               help="Data directory to store the datapackage")
+
+@click.command(
+    help=("Fuchur helps you to create model data and caluculation " "the model")
+)
+@click.option(
+    "--config",
+    default="config.json",
+    help="Config file to create model input data.",
+)
+@click.option(
+    "--datapackage-dir",
+    default=os.getcwd(),
+    help="Data directory to store the datapackage",
+)
 # @click.option('--run-model', default=False, prompt='Run model?',
 #                help="Run the model that has been constrcuted.")
 def main(config, datapackage_dir):
     config = datapackage.building.get_config(config)
-    #construct(config, datapackage_dir)
-    compute.compute(config, datapackage_dir, 'results')
+    # construct(config, datapackage_dir)
+    compute.compute(config, datapackage_dir, "results")
