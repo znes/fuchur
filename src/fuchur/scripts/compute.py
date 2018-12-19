@@ -39,7 +39,10 @@ def compute(config, datapackage_dir, results_dir):
     if temporal_resolution > 1:
         logging.info("Aggregating for temporal aggregation ... ")
         path = aggregation.temporal_skip(
-            "datapackage.json", temporal_resolution, path=scenario_path
+            "datapackage.json",
+            temporal_resolution,
+            path=scenario_path,
+            name="exogenous",
         )
     else:
         path = processing.copy_datapackage(
@@ -187,12 +190,12 @@ def compute(config, datapackage_dir, results_dir):
         supply_sum = (
             supply_sum.set_index(["from", "to"]).unstack("from")
             / 1e6
-            * config["temporal_resolution"]
+            * config["temporal-resolution"]
         )
         supply_sum.columns = supply_sum.columns.droplevel(0)
 
         excess_share = (
-            excess.sum() * config["temporal_resolution"] / 1e6
+            excess.sum() * config["temporal-resolution"] / 1e6
         ) / supply_sum.sum(axis=1)
         excess_share.name = "excess"
 

@@ -19,10 +19,11 @@ import os
 import click
 from oemof.tabular import datapackage
 
-from fuchur.scripts import bus, electricity, grid, capacity_factors, compute
+from fuchur.scripts import bus, electricity, grid, capacity_factors
+from fuchur.scripts import compute as _compute
 
 
-def construct(config_path, datapackage_dir):
+def _construct(config_path, datapackage_dir):
     """
 
     config_path: string
@@ -77,22 +78,38 @@ def construct(config_path, datapackage_dir):
     )
 
 
-@click.command(
-    help=("Fuchur helps you to create model data and caluculation " "the model")
-)
-@click.option(
-    "--config",
-    default="config.json",
-    help="Config file to create model input data.",
-)
+@click.group(chain=True)
+@click.option("--solver", default=False, help="Choose solver")
 @click.option(
     "--datapackage-dir",
     default=os.getcwd(),
     help="Data directory to store the datapackage",
 )
-# @click.option('--run-model', default=False, prompt='Run model?',
-#                help="Run the model that has been constrcuted.")
-def main(config, datapackage_dir):
+@click.option(
+    "--results-dir",
+    default=os.path.join(os.getcwd(), "results"),
+    help="Data for results",
+)
+
+@click.pass_context
+def cli(ctx, solver, datapackage_dir, results_dir):
+    ctx.obj["SOLVER"] = solver
+    ctx.obj["DATPACKAGE_DIR"] = datapackage_dir
+    ctx.obj["RESULTS_DIR"] = results_dir
+
+
+@cli.command()
+@click.argument("config", type=str, default="config.json")
+@click.pass_context
+def construct(ctx, config):
+    _construct(config, ctx.obj["DATPACKAGE_DIR"])
+
+@cli.command()
+@click.argument("config", type=str, default="config.json")
+@click.pass_context
+def compute(ctx, config):
     config = datapackage.building.get_config(config)
-    # construct(config, datapackage_dir)
-    compute.compute(config, datapackage_dir, "results")
+    _compute.compute(config, ctx.obj["DATPACKAGE_DIR"], ctx.obj["RESULTS_DIR"])
+
+def main():
+    cli(obj={})
