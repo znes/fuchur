@@ -27,9 +27,9 @@ def compute(config, ctx):
     if not os.path.exists(scenario_path):
         os.makedirs(scenario_path)
 
-    endogenous_path = os.path.join(scenario_path, "endogenous")
-    if not os.path.exists(endogenous_path):
-        os.makedirs(endogenous_path)
+    output_path = os.path.join(scenario_path, "output")
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     # store used config file
     with open(os.path.join(scenario_path, "config.json"), "w") as outfile:
@@ -42,12 +42,12 @@ def compute(config, ctx):
             os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
             temporal_resolution,
             path=scenario_path,
-            name="exogenous",
+            name="input"
         )
     else:
         path = processing.copy_datapackage(
             os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
-            os.path.abspath(os.path.join(scenario_path, "exogenous")),
+            os.path.abspath(os.path.join(scenario_path, "input")),
             subset="data",
         )
 
@@ -65,98 +65,9 @@ def compute(config, ctx):
 
     m.solve(ctx.obj["SOLVER"])
 
-    results = m.results()
+    m.results = m.results()
 
-    ################################################################################
-    # write results
-    ################################################################################
-
-    def save(df, name, path=endogenous_path):
-        df.to_csv(os.path.join(path, name + ".csv"))
-
-    buses = [b.label for b in es.nodes if isinstance(b, Bus)]
-
-    link_results = pp.component_results(es, results).get("link")
-    if link_results is not None:
-        save(link_results, "links-oemof")
-
-    imports = pd.DataFrame()
-    for b in buses:
-        supply = pp.supply_results(results=results, es=es, bus=[b])
-        supply.columns = supply.columns.droplevel([1, 2])
-
-        if link_results is not None and es.groups[b] in list(
-            link_results.columns.levels[0]
-        ):
-            ex = link_results.loc[:, (es.groups[b], slice(None), "flow")].sum(
-                axis=1
-            )
-            im = link_results.loc[:, (slice(None), es.groups[b], "flow")].sum(
-                axis=1
-            )
-
-            net_import = im - ex
-            net_import.name = es.groups[b]
-            imports = pd.concat([imports, net_import], axis=1)
-
-            supply["import"] = net_import
-
-        save(supply, "supply-" + b)
-        save(imports, "imports")
-
-    all = pp.bus_results(es, results, select="scalars", concat=True)
-    all.name = "value"
-    endogenous = all.reset_index()
-    endogenous["tech"] = [
-        getattr(t, "tech", np.nan) for t in all.index.get_level_values(0)
-    ]
-
-    d = dict()
-    for node in es.nodes:
-        if not isinstance(node, (Bus, Sink, facades.Shortage)):
-            if getattr(node, "capacity", None) is not None:
-                if isinstance(node, facades.TYPEMAP["link"]):
-                    pass  # key = (node.input, node.output, 'capacity', node.tech) # for oemof logic
-                else:
-                    key = (
-                        node,
-                        [n for n in node.outputs.keys()][0],
-                        "capacity",
-                        node.tech,
-                    )  # for oemof logic
-                    d[key] = {"value": node.capacity}
-    exogenous = pd.DataFrame.from_dict(d, orient="index").dropna()
-    exogenous.index = exogenous.index.set_names(["from", "to", "type", "tech"])
-
-    capacities = (
-        pd.concat([endogenous, exogenous.reset_index()])
-        .groupby(["to", "tech"])
-        .sum()
-        .unstack("to")
-    )
-    capacities.columns = capacities.columns.droplevel(0)
-    save(capacities, "capacities")
-
-    demand = pp.demand_results(results=results, es=es, bus=buses)
-    demand.columns = demand.columns.droplevel([0, 2])
-    save(demand, "load")
-
-    duals = pp.bus_results(es, results, concat=True).xs(
-        "duals", level=2, axis=1
-    )
-    duals.columns = duals.columns.droplevel(1)
-    duals = (duals.T / m.objective_weighting).T
-    save(duals, "shadow_prices")
-
-    excess = pp.component_results(es, results, select="sequences")["excess"]
-    excess.columns = excess.columns.droplevel([1, 2])
-    save(excess, "excess")
-
-    filling_levels = outputlib.views.node_weight_by_type(
-        results, GenericStorage
-    )
-    filling_levels.columns = filling_levels.columns.droplevel(1)
-    save(filling_levels, "filling_levels")
+    pp.write_results(m, output_path)
 
     modelstats = outputlib.processing.meta_results(m)
     modelstats.pop("solver")
@@ -164,41 +75,39 @@ def compute(config, ctx):
     with open(os.path.join(scenario_path, "modelstats.json"), "w") as outfile:
         json.dump(modelstats, outfile, indent=4)
 
-    # summary ----------------------------------------------------------------------
-    if True:
-        supply_sum = (
-            pp.supply_results(
-                results=results,
-                es=es,
-                bus=buses,
-                types=[
-                    "dispatchable",
-                    "volatile",
-                    "conversion",
-                    "backpressure",
-                    "extraction",
-                    "reservoir",
-                ],
-            )
-            .sum()
-            .reset_index()
-        )
-        supply_sum["from"] = supply_sum.apply(
-            lambda x: "-".join(x["from"].label.split("-")[1::]), axis=1
-        )
-        supply_sum.drop("type", axis=1, inplace=True)
-        supply_sum = (
-            supply_sum.set_index(["from", "to"]).unstack("from")
-            / 1e6
-            * config["temporal-resolution"]
-        )
-        supply_sum.columns = supply_sum.columns.droplevel(0)
 
-        excess_share = (
-            excess.sum() * config["temporal-resolution"] / 1e6
-        ) / supply_sum.sum(axis=1)
-        excess_share.name = "excess"
+    supply_sum = (
+        pp.supply_results(
+            results=m.results,
+            es=m.es,
+            bus=[b.label for b in es.nodes if isinstance(b, Bus)],
+            types=[
+                "dispatchable",
+                "volatile",
+                "conversion",
+                "backpressure",
+                "extraction",
+                "reservoir",
+            ],
+        )
+        .sum()
+        .reset_index()
+    )
+    supply_sum["from"] = supply_sum.apply(
+        lambda x: "-".join(x["from"].label.split("-")[1::]), axis=1
+    )
+    supply_sum.drop("type", axis=1, inplace=True)
+    supply_sum = (
+        supply_sum.set_index(["from", "to"]).unstack("from")
+        / 1e6
+        * config["temporal-resolution"]
+    )
+    supply_sum.columns = supply_sum.columns.droplevel(0)
 
-        summary = pd.concat([supply_sum, excess_share], axis=1)
+    # excess_share = (
+    #     excess.sum() * config["temporal-resolution"] / 1e6
+    # ) / supply_sum.sum(axis=1)
+    # excess_share.name = "excess"
 
-        save(summary, "summary", path=scenario_path)
+    summary = supply_sum #pd.concat([supply_sum, excess_share], axis=1)
+    summary.to_csv(os.path.join(scenario_path, 'summary.csv'))
