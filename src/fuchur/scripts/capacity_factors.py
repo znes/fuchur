@@ -7,19 +7,21 @@ import pandas as pd
 
 from oemof.tabular.datapackage import building
 
+import fuchur
 
 def pv(config, datapackage_dir):
     """
     """
-    filepath = building.download_data(
-        "https://www.renewables.ninja/static/downloads/ninja_europe_pv_v1.1.zip",
-        unzip_file="ninja_pv_europe_v1.1_merra2.csv",
-        local_path=os.path.join(datapackage_dir, "cache"),
-    )
+    # filepath = building.download_data(
+    #     "https://www.renewables.ninja/static/downloads/ninja_europe_pv_v1.1.zip",
+    #     unzip_file="ninja_pv_europe_v1.1_merra2.csv",
+    #     local_path=os.path.join(datapackage_dir, "cache"),
+    # )
+    filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
+                            "ninja_pv_europe_v1.1_merra2.csv")
+    year = str(config["temporal"]["weather_year"])
 
-    year = str(config["weather_year"])
-
-    countries = config["regions"]
+    countries = config["buses"]["electricity"]
 
     raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
     # for leap year...
@@ -35,7 +37,7 @@ def pv(config, datapackage_dir):
         sequence_name = c + "-pv-profile"
         sequences_df[sequence_name] = raw_data.loc[year][c].values
 
-    sequences_df.index = building.timeindex()
+    sequences_df.index = building.timeindex(year=config["temporal"]["year"])
     path = building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
@@ -46,19 +48,25 @@ def pv(config, datapackage_dir):
 def wind(config, datapackage_dir):
     """
     """
-    off_filepath = building.download_data(
-        "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
-        unzip_file="ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
-        local_path=os.path.join(datapackage_dir, "cache"),
-    )
+    # off_filepath = building.download_data(
+    #     "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
+    #     unzip_file="ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
+    #     local_path=os.path.join(datapackage_dir, "cache"),
+    # )
+    #
+    # near_term_path = building.download_data(
+    #     "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
+    #     unzip_file="ninja_wind_europe_v1.1_current_national.csv",
+    #     local_path=os.path.join(datapackage_dir, "cache"),
+    # )
 
-    near_term_path = building.download_data(
-        "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
-        unzip_file="ninja_wind_europe_v1.1_current_national.csv",
-        local_path=os.path.join(datapackage_dir, "cache"),
-    )
+    off_filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
+                                "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv")
 
-    year = str(config["weather_year"])
+    near_term_path = os.path.join(fuchur.__RAW_DATA_PATH__,
+                                "ninja_wind_europe_v1.1_current_national.csv")
+
+    year = str(config["temporal"]["weather_year"])
 
     # not in ninja dataset, as new market zones? (replace by german factor)
     missing = ["LU" "CZ" "AT" "CH"]
@@ -78,7 +86,7 @@ def wind(config, datapackage_dir):
 
     sequences_df = pd.DataFrame(index=near_term.loc[year].index)
 
-    for c in config["regions"]:
+    for c in config["buses"]["electricity"]:
         # add offshore profile if country exists in offshore data columns
         if [col for col in offshore_data.columns if c + "_OFF" in col]:
             sequences_df[c + "-wind-off-profile"] = offshore_data[c + "_OFF"]

@@ -14,37 +14,46 @@ from geojson import FeatureCollection, Feature
 from oemof.tabular.datapackage import building
 from oemof.tabular.tools import geometry
 
+import fuchur
 
-def add(config, datapackage_dir):
+def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
-    # Add bus geomtries
-    filepath = building.download_data(
-        "http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/"
-        "NUTS_2013_10M_SH.zip",
-        unzip_file="NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp",
-    )
 
-    building.download_data(
-        "http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/"
-        "NUTS_2013_10M_SH.zip",
-        unzip_file="NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.dbf",
-    )
+    filepath = os.path.join(raw_data_path,
+                            'NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp')
+
+    if not os.path.exists(filepath):
+        #TODO Adapt path for storing downloaded data
+        filepath = building.download_data(
+            "http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/"
+            "NUTS_2013_10M_SH.zip",
+            unzip_file="NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp",
+        )
+
+        building.download_data(
+            "http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/"
+            "NUTS_2013_10M_SH.zip",
+            unzip_file="NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.dbf",
+        )
 
     # get nuts 1 regions for german neighbours
+
     nuts0 = pd.Series(geometry.nuts(filepath, nuts=0, tolerance=0.1))
 
-    buses = pd.Series(name="geometry")
-    buses.index.name = "name"
+    el_buses = pd.Series(name="geometry")
+    el_buses.index.name = "name"
 
-    for r in config["regions"]:
-        buses[r + "-electricity"] = nuts0[r]
-    building.write_geometries("bus.geojson", buses)
+    for r in buses['electricity']:
+        el_buses[r + "-electricity"] = nuts0[r]
+    building.write_geometries(
+        "bus.geojson", el_buses,
+        os.path.join(datapackage_dir, "data/geometries"))
 
     # Add electricity buses
-    hub_elements = {}
-    for b in buses.index:
-        hub_elements[b] = {
+    bus_elements = {}
+    for b in el_buses.index:
+        bus_elements[b] = {
             "type": "bus",
             "carrier": "electricity",
             "geometry": b,
@@ -68,42 +77,31 @@ def add(config, datapackage_dir):
         bio_potential["source"] == "hotmaps"
     ].to_dict()
 
-    for p in config["primary_carrier"]:
-        for r in config["regions"]:
-            bus_name = r + "-" + p + "-bus"
-            commodity_name = r + "-" + p + "-commodity"
-            if p == "biomass":
-                balanced = True
-                commodities[commodity_name] = {
-                    "type": "dispatchable",
-                    "carrier": p,
-                    "bus": bus_name,
-                    "capacity": float(bio_potential["value"].get((r, p), 0))
-                    * 1e6,  # TWh -> MWh
-                    "output_parameters": json.dumps({"summed_max": 1}),
-                }
-            else:
-                balanced = False
+    if buses.get('biomass'):
+        for b in buses['biomass']:
+            bus_name = b + "-biomass-bus"
+            commodity_name = b + "biomass-commodity"
 
-            hub_elements[bus_name] = {
-                "type": "bus",
-                "carrier": p,
-                "geometry": None,
-                "balanced": balanced,
+            commodities[commodity_name] = {
+                "type": "dispatchable",
+                "carrier": 'biomass',
+                "bus": bus_name,
+                "capacity": float(bio_potential["value"].get((r, 'biomass'), 0))
+                * 1e6,  # TWh -> MWh
+                "output_parameters": json.dumps({"summed_max": 1}),
             }
 
-    # Add heat buses
-    if config["heating"]:
-        for b in config.get("central_heat_buses", []):
-            hub_elements[b] = {
+            bus_elements[bus_name] = {
                 "type": "bus",
-                "carrier": "heat",
+                "carrier": 'biomass',
                 "geometry": None,
                 "balanced": True,
             }
 
-        for b in config.get("decentral_heat_buses", []):
-            hub_elements[b] = {
+    # Add heat buses per  sub_bus and region (r)
+    for sub_bus, regions in buses["heat"].items():
+        for region in regions:
+            bus_elements['-'.join([region, "heat", sub_bus])] = {
                 "type": "bus",
                 "carrier": "heat",
                 "geometry": None,
@@ -118,6 +116,6 @@ def add(config, datapackage_dir):
 
     path = building.write_elements(
         "bus.csv",
-        pd.DataFrame.from_dict(hub_elements, orient="index"),
+        pd.DataFrame.from_dict(bus_elements, orient="index"),
         os.path.join(datapackage_dir, "data/elements"),
     )

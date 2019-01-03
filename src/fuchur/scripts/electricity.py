@@ -13,15 +13,18 @@ import pandas as pd
 from oemof.tabular.datapackage import building
 from oemof.tools.economics import annuity
 
+import fuchur
 
-def load(config, datapackage_dir):
+def load(buses, temporal, datapackage_dir,
+         raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
     # first we build the elements ---------------
     filename = "e-Highway_database_per_country-08022016.xlsx"
-    filepath = os.path.join(datapackage_dir, "archive", filename)
+    filepath = os.path.join(raw_data_path,
+                            filename)
 
-    if config["year"] == 2050:
+    if temporal["year"] == 2050:
         sheet = "T40"
     if os.path.exists(filepath):
         df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
@@ -44,7 +47,8 @@ def load(config, datapackage_dir):
     df.drop(df.index[0:1], inplace=True)
     df.dropna(how="all", axis=1, inplace=True)
 
-    elements = df.loc[config["regions"], df.loc["Scenario"] == "100% RES"]
+    elements = df.loc[buses["electricity"],
+                      df.loc["Scenario"] == "100% RES"]
     elements = elements.rename(columns={"Unnamed: 3": "amount"})
     elements.index.name = "bus"
     elements.reset_index(inplace=True)
@@ -66,20 +70,23 @@ def load(config, datapackage_dir):
         directory=os.path.join(datapackage_dir, "data/elements"),
     )
 
-    # now we are adding the sequences
-    filepath = building.download_data(
-        "https://data.open-power-system-data.org/time_series/2017-07-09/"
-        + "time_series_60min_singleindex.csv",
-        local_path=os.path.join(datapackage_dir, "cache"),
-    )
+    filepath = os.path.join(raw_data_path,
+                            "time_series_60min_singleindex.csv")
+
+    # # now we are adding the sequences
+    # filepath = building.download_data(
+    #     "https://data.open-power-system-data.org/time_series/2017-07-09/"
+    #     + "time_series_60min_singleindex.csv",
+    #     local_path=os.path.join(datapackage_dir, "cache"),
+    # )
 
     raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
 
     suffix = "_load_old"
 
-    year = str(config["demand_year"])
+    year = str(temporal["demand_year"])
 
-    countries = config["regions"]
+    countries = buses["electricity"]
 
     columns = [c + suffix for c in countries]
 
@@ -96,7 +103,10 @@ def load(config, datapackage_dir):
     load_profile = timeseries / load_total
 
     sequences_df = pd.DataFrame(index=load_profile.index)
-    elements = building.read_elements("load.csv")
+    elements = building.read_elements(
+        "load.csv",
+        directory=os.path.join(datapackage_dir, "data/elements"))
+
     for c in countries:
         # get sequence name from elements edge_parameters (include re-exp to also
         # check for 'elec' or similar)
@@ -111,7 +121,7 @@ def load(config, datapackage_dir):
             ~((sequences_df.index.month == 2) & (sequences_df.index.day == 29))
         ]
 
-    sequences_df.index = building.timeindex()
+    sequences_df.index = building.timeindex(year=temporal["year"])
 
     path = building.write_sequences(
         "load_profile.csv",
@@ -134,7 +144,7 @@ def generation(config, datapackage_dir):
         "acaes": "storage",
     }
 
-    wacc = config["wacc"]
+    wacc = config["cost"]["wacc"]
 
     technologies = pd.DataFrame(
         Package(
@@ -149,7 +159,7 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["year"]].to_dict()
+    technologies = technologies.loc[config["temporal"]["year"]].to_dict()
 
     potential = (
         Package(
@@ -166,22 +176,23 @@ def generation(config, datapackage_dir):
     for tech in technologies:
         technologies[tech]["capacity_cost"] = technologies[tech][
             "capacity_cost"
-        ] * config["cost_factor"].get(tech, 1)
+        ] * config["cost"]["factor"].get(tech, 1)
         if "storage_capacity_cost" in technologies[tech]:
             technologies[tech]["storage_capacity_cost"] = technologies[tech][
                 "storage_capacity_cost"
-            ] * config["cost_factor"].get(tech, 1)
+            ] * config["cost"]["factor"].get(tech, 1)
 
     carrier = pd.read_csv(
-        os.path.join(datapackage_dir, "archive/carrier.csv"), index_col=[0, 1]
-    ).loc[("base", config["year"])]
+        os.path.join(fuchur.__RAW_DATA_PATH__,
+                     "carrier.csv"), index_col=[0, 1]
+    ).loc[("base", config["temporal"]["year"])]
     carrier.set_index("carrier", inplace=True)
 
     elements = {}
 
-    for r in config["regions"]:
+    for r in config["buses"]["electricity"]:
         for tech, data in technologies.items():
-            if tech in config["investment_technologies"]:
+            if tech in config["technologies"]["investment"]:
 
                 element = data.copy()
                 elements[r + "-" + tech] = element
@@ -194,7 +205,7 @@ def generation(config, datapackage_dir):
                                 float(data["lifetime"]),
                                 wacc,
                             )
-                            * 1000,  # €/kW -> €/M
+                            * 1000,  # €/kW -> €/MW
                             "bus": r + "-electricity",
                             "type": "dispatchable",
                             "marginal_cost": (
@@ -385,27 +396,29 @@ def _get_hydro_inflow(inflow_dir=None):
 def hydro_generation(config, datapackage_dir):
     """
     """
-    countries, year = config["regions"], config["year"]
+    countries, year = config["buses"]["electricity"], config["temporal"]["year"]
 
     capacities = pd.read_csv(
-        building.download_data(
-            "https://zenodo.org/record/804244/files/hydropower.csv?download=1",
-            local_path=os.path.join(datapackage_dir, "cache"),
-        ),
+        # building.download_data(
+        #     "https://zenodo.org/record/804244/files/hydropower.csv?download=1",
+        #     local_path=os.path.join(datapackage_dir, "cache"),
+        # ),
+        os.path.join(fuchur.__RAW_DATA_PATH__, 'hydropower.csv'),
         index_col=["ctrcode"],
     )
 
     capacities.loc["CH"] = [8.8, 12, 1.9]  # add CH elsewhere
 
     inflows = _get_hydro_inflow(
-        building.download_data(
-            "https://zenodo.org/record/804244/files/Hydro_Inflow.zip?download=1",
-            unzip_file="Hydro_Inflow/",
-            local_path=os.path.join(datapackage_dir, "cache"),
-        )
+        inflow_dir=os.path.join(fuchur.__RAW_DATA_PATH__, 'Hydro_Inflow')
+        # building.download_data(
+        #     "https://zenodo.org/record/804244/files/Hydro_Inflow.zip?download=1",
+        #     unzip_file="Hydro_Inflow/",
+        #     local_path=os.path.join(datapackage_dir, "cache"),
+        # )
     )
 
-    inflows = inflows.loc[inflows.index.year == config["weather_year"], :]
+    inflows = inflows.loc[inflows.index.year == config["temporal"]["weather_year"], :]
     inflows["DK"], inflows["LU"] = 0, inflows["BE"]
 
     technologies = pd.DataFrame(
@@ -424,7 +437,7 @@ def hydro_generation(config, datapackage_dir):
     technologies = technologies.loc[year].to_dict()
 
     ror_shares = pd.read_csv(
-        os.path.join(datapackage_dir, "archive", "ror_ENTSOe_Restore2050.csv"),
+        os.path.join(fuchur.__RAW_DATA_PATH__, "ror_ENTSOe_Restore2050.csv"),
         index_col="Country Code (ISO 3166-1)",
     )["ror ENTSO-E\n+ Restore"]
 
@@ -503,13 +516,13 @@ def hydro_generation(config, datapackage_dir):
     # in meta data
     building.write_sequences(
         "reservoir_profile.csv",
-        rsv_sequences.set_index(building.timeindex()),
+        rsv_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
     building.write_sequences(
         "ror_profile.csv",
-        ror_sequences.set_index(building.timeindex()),
+        ror_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
@@ -521,7 +534,7 @@ def hydro_generation(config, datapackage_dir):
             lambda x: annuity(
                 float(x["capacity_cost"]) * 1000,
                 float(x["lifetime"]),
-                config["wacc"],
+                config["cost"]["wacc"],
             ),
             axis=1,
         )

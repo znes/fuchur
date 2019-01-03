@@ -35,45 +35,48 @@ def _construct(config, ctx):
         directories=["data", "resources"]
     )
 
-    datapackage.building.initialize_datapackage(config=config)
+    datapackage.building.initialize_datapackage(
+        config=config,
+        directory=ctx.obj["DATPACKAGE_DIR"])
 
-    bus.add(config, ctx.obj["DATPACKAGE_DIR"])
+    bus.add(config['buses'], ctx.obj["DATPACKAGE_DIR"])
 
-    grid.add(config, ctx.obj["DATPACKAGE_DIR"])
+    grid.add(config['buses'], ctx.obj["DATPACKAGE_DIR"])
 
-    electricity.load(config, ctx.obj["DATPACKAGE_DIR"])
+    electricity.load(config['buses'], config['temporal'],
+                     ctx.obj["DATPACKAGE_DIR"])
 
     electricity.generation(config, ctx.obj["DATPACKAGE_DIR"])
-
+    #
     electricity.excess(config, ctx.obj["DATPACKAGE_DIR"])
-
+    #
     electricity.hydro_generation(config, ctx.obj["DATPACKAGE_DIR"])
-
+    #
     capacity_factors.pv(config, ctx.obj["DATPACKAGE_DIR"])
-
-    capacity_factors.wind(config, ctx.obj["DATPACKAGE_DIR"])
-
-    datapackage.building.infer_metadata(
-        package_name="angus2",
-        foreign_keys={
-            "bus": [
-                "volatile",
-                "dispatchable",
-                "storage",
-                "heat_storage",
-                "load",
-                "ror",
-                "reservoir",
-                "phs",
-                "excess",
-                "boiler",
-                "commodity",
-            ],
-            "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
-            "from_to_bus": ["link", "conversion", "line"],
-            "chp": ["backpressure", "extraction"],
-        },
-    )
+    #
+    # capacity_factors.wind(config, ctx.obj["DATPACKAGE_DIR"])
+    #
+    # datapackage.building.infer_metadata(
+    #     package_name="angus2",
+    #     foreign_keys={
+    #         "bus": [
+    #             "volatile",
+    #             "dispatchable",
+    #             "storage",
+    #             "heat_storage",
+    #             "load",
+    #             "ror",
+    #             "reservoir",
+    #             "phs",
+    #             "excess",
+    #             "boiler",
+    #             "commodity",
+    #         ],
+    #         "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
+    #         "from_to_bus": ["link", "conversion", "line"],
+    #         "chp": ["backpressure", "extraction"],
+    #     },
+    # )
 
 
 @click.group(chain=True)
@@ -112,7 +115,7 @@ def cli(ctx, solver, datapackage_dir, results_dir, compute, construct):
 @click.argument("config", type=str, default="config.json")
 @click.pass_context
 def fire(ctx, config):
-    config = datapackage.building.get_config(config)
+    config = datapackage.building.read_build_config(config)
 
     if ctx.obj["CONSTRUCT"]:
         _construct(config, ctx)

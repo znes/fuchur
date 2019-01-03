@@ -11,6 +11,7 @@ from oemof.tabular.datapackage import building
 from oemof.tabular.tools import geometry
 from oemof.tools.economics import annuity
 
+import fuchur
 
 def _prepare_frame(df):
     """ prepare dataframe
@@ -55,13 +56,14 @@ def _remove_links(row):
         return True
 
 
-def add(config, datapackage_dir):
+def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
 
     filename = "e-Highway_database_per_country-08022016.xlsx"
 
-    filepath = os.path.join(datapackage_dir, "archive", filename)
+    filepath = os.path.join(raw_data_path,
+                            filename)
 
     if os.path.exists(filepath):
         # if file exist in archive use this file
@@ -74,7 +76,7 @@ def add(config, datapackage_dir):
         ).fillna(0)
     else:
         # if file does not exist, try to download and check if valid xlsx file
-        logging.info("File for e-Highway capacities does not exist. Download..")
+        print("File for e-Highway capacities does not exist. Download..")
         filepath = building.download_data(
             "http://www.e-highway2050.eu/fileadmin/documents/" + filename,
             local_path=os.path.join(datapackage_dir, "cache"),
@@ -98,7 +100,9 @@ def add(config, datapackage_dir):
 
     elements = {}
     for idx, row in df_2030.iterrows():
-        if row["from"] in config["regions"] and row["to"] in config["regions"]:
+        if row["from"] in buses["electricity"] and \
+            row["to"] in buses["electricity"]:
+
             predecessor = row["from"] + "-electricity"
             successor = row["to"] + "-electricity"
             element_name = predecessor + "-" + successor
@@ -111,7 +115,7 @@ def add(config, datapackage_dir):
                 "tech": "transshipment",
                 "capacity": row[scenario]
                 + df_2050.to_dict()[scenario].get(idx, 0),
-                "length": row["Length"] * 1.2,
+                "length": row["Length"],
             }
 
             elements[element_name] = element
