@@ -488,8 +488,7 @@ def hydro_generation(config, datapackage_dir):
     # other hydro / reservoir
     rsv = pd.DataFrame(index=countries)
     rsv["type"], rsv["tech"], rsv["bus"], rsv["loss"], rsv["capacity"], rsv[
-        "storage_capacity"
-    ] = (
+        "storage_capacity"] = (
         "reservoir",
         "reservoir",
         rsv.index.astype(str) + "-electricity",
@@ -507,7 +506,7 @@ def hydro_generation(config, datapackage_dir):
 
     rsv = rsv.assign(**technologies["reservoir"])[rsv["capacity"] > 0].dropna()
     rsv["profile"] = rsv["bus"] + "-" + rsv["tech"] + "-profile"
-
+    rsv["efficiency"] = 1 # as inflow is already in MWelec -> no conversion needed
     rsv_sequences = (
         inflows[rsv.index] * (1 - ror_shares[rsv.index]) * 1000
     )  # GWh -> MWh
