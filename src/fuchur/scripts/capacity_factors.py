@@ -37,7 +37,8 @@ def pv(config, datapackage_dir):
         sequence_name = c + "-pv-profile"
         sequences_df[sequence_name] = raw_data.loc[year][c].values
 
-    sequences_df.index = building.timeindex(year=config["temporal"]["scenario_year"])
+    sequences_df.index = building.timeindex(
+        year=str(config["temporal"]["scenario_year"]))
     path = building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
@@ -99,7 +100,7 @@ def wind(config, datapackage_dir):
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
     sequences_df.index = building.timeindex(
-        year=config['temporal']["scenario_year"])
+        year=str(config['temporal']["scenario_year"]))
 
     path = building.write_sequences(
         "volatile_profile.csv",

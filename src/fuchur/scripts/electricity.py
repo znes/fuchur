@@ -121,7 +121,8 @@ def load(buses, temporal, datapackage_dir,
             ~((sequences_df.index.month == 2) & (sequences_df.index.day == 29))
         ]
 
-    sequences_df.index = building.timeindex(year=temporal["scenario_year"])
+    sequences_df.index = building.timeindex(
+        year=str(temporal["scenario_year"]))
 
     path = building.write_sequences(
         "load_profile.csv",
@@ -516,13 +517,15 @@ def hydro_generation(config, datapackage_dir):
     # in meta data
     building.write_sequences(
         "reservoir_profile.csv",
-        rsv_sequences.set_index(building.timeindex(year=config["temporal"]["scenario_year"])),
+        rsv_sequences.set_index(building.timeindex(year=
+            str(config["temporal"]["scenario_year"]))),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
     building.write_sequences(
         "ror_profile.csv",
-        ror_sequences.set_index(building.timeindex(year=config["temporal"]["scenario_year"])),
+        ror_sequences.set_index(building.timeindex(year=
+            str(config["temporal"]["scenario_year"]))),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 

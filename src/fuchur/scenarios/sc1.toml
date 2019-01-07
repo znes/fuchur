@@ -3,6 +3,7 @@
 
 title = "Fuchur build config for scenario 1"
 description = "Electricity sector for DE and DK."
+name = "scenario1"
 
 [owner]
 name = "ZNES"

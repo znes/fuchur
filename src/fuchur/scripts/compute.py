@@ -15,15 +15,19 @@ from oemof.solph import EnergySystem, Model, Bus, Sink, constraints
 from oemof.solph.components import GenericStorage
 
 
-def compute(config, ctx):
+def compute(ctx):
     """
     """
+    p = Package(
+        os.path.join(
+            ctx.obj["DATPACKAGE_DIR"], 'datapackage.json')
+        )
 
-    temporal_resolution = config.get("temporal-resolution", 1)
-    emission_limit = config.get("emission-limit")
+    temporal_resolution = ctx.obj["TEMPORAL_RESOLUTION"]
+    emission_limit = ctx.obj["EMISSION_LIMIT"]
 
     # create results path
-    scenario_path = os.path.join(ctx.obj["RESULTS_DIR"], config["name"])
+    scenario_path = os.path.join(ctx.obj["RESULTS_DIR"], p.descriptor["name"])
     if not os.path.exists(scenario_path):
         os.makedirs(scenario_path)
 
@@ -32,8 +36,8 @@ def compute(config, ctx):
         os.makedirs(output_path)
 
     # store used config file
-    with open(os.path.join(scenario_path, "config.json"), "w") as outfile:
-        json.dump(config, outfile, indent=4)
+    # with open(os.path.join(scenario_path, "config.json"), "w") as outfile:
+    #     json.dump(config, outfile, indent=4)
 
     # copy package either aggregated or the original one (only data!)
     if temporal_resolution > 1:
@@ -100,7 +104,7 @@ def compute(config, ctx):
     supply_sum = (
         supply_sum.set_index(["from", "to"]).unstack("from")
         / 1e6
-        * config["temporal-resolution"]
+        * temporal_resolution
     )
     supply_sum.columns = supply_sum.columns.droplevel(0)
 
