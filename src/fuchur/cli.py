@@ -47,81 +47,77 @@ def _construct(config, ctx):
                      ctx.obj["DATPACKAGE_DIR"])
 
     electricity.generation(config, ctx.obj["DATPACKAGE_DIR"])
-    #
+
     electricity.excess(config, ctx.obj["DATPACKAGE_DIR"])
-    #
+
     electricity.hydro_generation(config, ctx.obj["DATPACKAGE_DIR"])
-    #
+
     capacity_factors.pv(config, ctx.obj["DATPACKAGE_DIR"])
-    #
-    # capacity_factors.wind(config, ctx.obj["DATPACKAGE_DIR"])
-    #
-    # datapackage.building.infer_metadata(
-    #     package_name="angus2",
-    #     foreign_keys={
-    #         "bus": [
-    #             "volatile",
-    #             "dispatchable",
-    #             "storage",
-    #             "heat_storage",
-    #             "load",
-    #             "ror",
-    #             "reservoir",
-    #             "phs",
-    #             "excess",
-    #             "boiler",
-    #             "commodity",
-    #         ],
-    #         "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
-    #         "from_to_bus": ["link", "conversion", "line"],
-    #         "chp": ["backpressure", "extraction"],
-    #     },
-    # )
+
+    capacity_factors.wind(config, ctx.obj["DATPACKAGE_DIR"])
+
+    datapackage.building.infer_metadata(
+        package_name="angus2",
+        foreign_keys={
+            "bus": [
+                "volatile",
+                "dispatchable",
+                "storage",
+                "heat_storage",
+                "load",
+                "ror",
+                "reservoir",
+                "phs",
+                "excess",
+                "boiler",
+                "commodity",
+            ],
+            "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
+            "from_to_bus": ["link", "conversion", "line"],
+            "chp": ["backpressure", "extraction"],
+        },
+    )
 
 
 @click.group(chain=True)
-@click.option("--solver", default="gurobi", help="Choose solver")
+#@click.option("--solver", default="gurobi", help="Choose solver")
 @click.option(
     "--datapackage-dir",
     default=os.getcwd(),
     help="Data to root directory of datapackage",
 )
-@click.option(
-    "--results-dir",
-    default=os.path.join(os.getcwd(), "results"),
-    help="Data for results",
-)
-@click.option(
-    "--compute",
-    default=True,
-    type=bool,
-    help="Flag if constructed model is computed.",
-)
-@click.option(
-    "--construct",
-    default=False,
-    type=bool,
-    help="Flag if model is constructed.",
-)
+# @click.option(
+#     "--results-dir",
+#     default=os.path.join(os.getcwd(), "results"),
+#     help="Data for results",
+# )
+# @click.option(
+#     "--compute",
+#     default=True,
+#     type=bool,
+#     help="Flag if constructed model is computed.",
+# )
+
 
 @click.pass_context
-def cli(ctx, solver, datapackage_dir, results_dir, compute, construct):
-    ctx.obj["SOLVER"] = solver
+def cli(ctx, datapackage_dir):
+    #ctx.obj["SOLVER"] = solver
     ctx.obj["DATPACKAGE_DIR"] = datapackage_dir
-    ctx.obj["RESULTS_DIR"] = results_dir
-    ctx.obj["COMPUTE"] = compute
-    ctx.obj["CONSTRUCT"] = construct
+
 @cli.command()
 @click.argument("config", type=str, default="config.json")
 @click.pass_context
-def fire(ctx, config):
+def construct(ctx, config):
     config = datapackage.building.read_build_config(config)
+    _construct(config, ctx)
+#
+# @cli.command()
+# @click.argument("datapackage", type=str, default=os.getcwd())
+# @click.pass_context
+# def construct(ctx, config):
+#     _compute(config, ctx)
 
-    if ctx.obj["CONSTRUCT"]:
-        _construct(config, ctx)
 
-    if ctx.obj["COMPUTE"]:
-        _compute.compute(config, ctx)
 
 def main():
     cli(obj={})

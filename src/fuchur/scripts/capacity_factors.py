@@ -37,7 +37,7 @@ def pv(config, datapackage_dir):
         sequence_name = c + "-pv-profile"
         sequences_df[sequence_name] = raw_data.loc[year][c].values
 
-    sequences_df.index = building.timeindex(year=config["temporal"]["year"])
+    sequences_df.index = building.timeindex(year=config["temporal"]["scenario_year"])
     path = building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
@@ -71,7 +71,7 @@ def wind(config, datapackage_dir):
     # not in ninja dataset, as new market zones? (replace by german factor)
     missing = ["LU" "CZ" "AT" "CH"]
 
-    countries = list(set(config["regions"]) - set(missing))
+    countries = list(set(config["buses"]["electricity"]) - set(missing))
 
     near_term = pd.read_csv(near_term_path, index_col=[0], parse_dates=True)
     # for lead year...
@@ -98,7 +98,8 @@ def wind(config, datapackage_dir):
 
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
-    sequences_df.index = building.timeindex()
+    sequences_df.index = building.timeindex(
+        year=config['temporal']["scenario_year"])
 
     path = building.write_sequences(
         "volatile_profile.csv",

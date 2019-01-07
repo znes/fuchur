@@ -24,7 +24,7 @@ def load(buses, temporal, datapackage_dir,
     filepath = os.path.join(raw_data_path,
                             filename)
 
-    if temporal["year"] == 2050:
+    if temporal["scenario_year"] == 2050:
         sheet = "T40"
     if os.path.exists(filepath):
         df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
@@ -121,7 +121,7 @@ def load(buses, temporal, datapackage_dir,
             ~((sequences_df.index.month == 2) & (sequences_df.index.day == 29))
         ]
 
-    sequences_df.index = building.timeindex(year=temporal["year"])
+    sequences_df.index = building.timeindex(year=temporal["scenario_year"])
 
     path = building.write_sequences(
         "load_profile.csv",
@@ -159,7 +159,7 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["year"]].to_dict()
+    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
 
     potential = (
         Package(
@@ -185,7 +185,7 @@ def generation(config, datapackage_dir):
     carrier = pd.read_csv(
         os.path.join(fuchur.__RAW_DATA_PATH__,
                      "carrier.csv"), index_col=[0, 1]
-    ).loc[("base", config["temporal"]["year"])]
+    ).loc[("base", config["temporal"]["scenario_year"])]
     carrier.set_index("carrier", inplace=True)
 
     elements = {}
@@ -396,7 +396,7 @@ def _get_hydro_inflow(inflow_dir=None):
 def hydro_generation(config, datapackage_dir):
     """
     """
-    countries, year = config["buses"]["electricity"], config["temporal"]["year"]
+    countries, year = config["buses"]["electricity"], config["temporal"]["scenario_year"]
 
     capacities = pd.read_csv(
         # building.download_data(
@@ -516,13 +516,13 @@ def hydro_generation(config, datapackage_dir):
     # in meta data
     building.write_sequences(
         "reservoir_profile.csv",
-        rsv_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
+        rsv_sequences.set_index(building.timeindex(year=config["temporal"]["scenario_year"])),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
     building.write_sequences(
         "ror_profile.csv",
-        ror_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
+        ror_sequences.set_index(building.timeindex(year=config["temporal"]["scenario_year"])),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 

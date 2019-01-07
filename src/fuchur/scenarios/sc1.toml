@@ -20,7 +20,7 @@ lithium_battery = 2
 acaes = 1
 
 [temporal]
-year = 2050
+scenario_year = 2050
 weather_year = 2012
 demand_year = 2012
 
