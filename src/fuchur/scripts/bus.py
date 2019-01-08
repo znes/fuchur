@@ -9,7 +9,6 @@ import os
 
 from datapackage import Package
 import pandas as pd
-from geojson import FeatureCollection, Feature
 
 from oemof.tabular.datapackage import building
 from oemof.tabular.tools import geometry
@@ -108,13 +107,13 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
                 "balanced": True,
             }
 
-    path = building.write_elements(
+    building.write_elements(
         "commodity.csv",
         pd.DataFrame.from_dict(commodities, orient="index"),
         os.path.join(datapackage_dir, "data/elements"),
     )
 
-    path = building.write_elements(
+    building.write_elements(
         "bus.csv",
         pd.DataFrame.from_dict(bus_elements, orient="index"),
         os.path.join(datapackage_dir, "data/elements"),

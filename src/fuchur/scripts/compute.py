@@ -1,18 +1,15 @@
-import datetime
+
 import os
 import json
 import logging
 
 from datapackage import Package
-import numpy as np
-import pandas as pd
 
 from oemof.tabular import facades
-from oemof.tabular.datapackage import aggregation, building, processing
 from oemof.tabular.tools import postprocessing as pp
+from oemof.tabular.datapackage import processing, aggregation
 import oemof.outputlib as outputlib
-from oemof.solph import EnergySystem, Model, Bus, Sink, constraints
-from oemof.solph.components import GenericStorage
+from oemof.solph import EnergySystem, Model, Bus, constraints
 
 
 def compute(ctx):
