@@ -13,6 +13,7 @@ from oemof.tools.economics import annuity
 
 import fuchur
 
+
 def load(buses, temporal, datapackage_dir,
          raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
@@ -66,7 +67,6 @@ def load(buses, temporal, datapackage_dir,
         logging.info(
             "File for OPSD loads does not exist. Did you download data?"
         )
-
 
     suffix = "_load_old"
 
@@ -492,7 +492,7 @@ def hydro_generation(config, datapackage_dir):
 
     rsv = rsv.assign(**technologies["reservoir"])[rsv["capacity"] > 0].dropna()
     rsv["profile"] = rsv["bus"] + "-" + rsv["tech"] + "-profile"
-    rsv["efficiency"] = 1 # as inflow is already in MWelec -> no conversion needed
+    rsv["efficiency"] = 1  # as inflow is already in MWelec -> no conversion needed
     rsv_sequences = (
         inflows[rsv.index] * (1 - ror_shares[rsv.index]) * 1000
     )  # GWh -> MWh
@@ -502,15 +502,21 @@ def hydro_generation(config, datapackage_dir):
     # in meta data
     building.write_sequences(
         "reservoir_profile.csv",
-        rsv_sequences.set_index(building.timeindex(year=
-            str(config["temporal"]["scenario_year"]))),
+        rsv_sequences.set_index(
+            building.timeindex(
+                year=str(config["temporal"]["scenario_year"])
+            )
+        ),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
     building.write_sequences(
         "ror_profile.csv",
-        ror_sequences.set_index(building.timeindex(year=
-            str(config["temporal"]["scenario_year"]))),
+        ror_sequences.set_index(
+            building.timeindex(
+                year=str(config["temporal"]["scenario_year"])
+            )
+        ),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 

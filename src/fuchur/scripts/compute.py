@@ -76,7 +76,6 @@ def compute(ctx):
     with open(os.path.join(scenario_path, "modelstats.json"), "w") as outfile:
         json.dump(modelstats, outfile, indent=4)
 
-
     supply_sum = (
         pp.supply_results(
             results=m.results,
@@ -104,11 +103,5 @@ def compute(ctx):
         * temporal_resolution
     )
     supply_sum.columns = supply_sum.columns.droplevel(0)
-
-    # excess_share = (
-    #     excess.sum() * config["temporal-resolution"] / 1e6
-    # ) / supply_sum.sum(axis=1)
-    # excess_share.name = "excess"
-
     summary = supply_sum #pd.concat([supply_sum, excess_share], axis=1)
     summary.to_csv(os.path.join(scenario_path, 'summary.csv'))

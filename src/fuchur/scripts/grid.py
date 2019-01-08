@@ -9,6 +9,7 @@ from oemof.tabular.datapackage import building
 
 import fuchur
 
+
 def _prepare_frame(df):
     """ prepare dataframe
     """
@@ -81,7 +82,7 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     elements = {}
     for idx, row in df_2030.iterrows():
         if row["from"] in buses["electricity"] and \
-            row["to"] in buses["electricity"]:
+        row["to"] in buses["electricity"]:
 
             predecessor = row["from"] + "-electricity"
             successor = row["to"] + "-electricity"

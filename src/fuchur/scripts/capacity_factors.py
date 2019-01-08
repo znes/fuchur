@@ -9,6 +9,7 @@ from oemof.tabular.datapackage import building
 
 import fuchur
 
+
 def pv(config, datapackage_dir):
     """
     """
@@ -44,11 +45,13 @@ def pv(config, datapackage_dir):
 def wind(config, datapackage_dir):
     """
     """
-    off_filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
-                                "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv")
+    off_filepath = os.path.join(
+        fuchur.__RAW_DATA_PATH__,
+        "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv")
 
-    near_term_path = os.path.join(fuchur.__RAW_DATA_PATH__,
-                                "ninja_wind_europe_v1.1_current_national.csv")
+    near_term_path = os.path.join(
+        fuchur.__RAW_DATA_PATH__,
+        "ninja_wind_europe_v1.1_current_national.csv")
 
     year = str(config["temporal"]["weather_year"])
 
