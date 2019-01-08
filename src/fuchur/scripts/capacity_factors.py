@@ -2,7 +2,7 @@
 """
 """
 import os
-import json
+
 import pandas as pd
 
 from oemof.tabular.datapackage import building
@@ -12,11 +12,6 @@ import fuchur
 def pv(config, datapackage_dir):
     """
     """
-    # filepath = building.download_data(
-    #     "https://www.renewables.ninja/static/downloads/ninja_europe_pv_v1.1.zip",
-    #     unzip_file="ninja_pv_europe_v1.1_merra2.csv",
-    #     local_path=os.path.join(datapackage_dir, "cache"),
-    # )
     filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
                             "ninja_pv_europe_v1.1_merra2.csv")
     year = str(config["temporal"]["weather_year"])
@@ -39,7 +34,7 @@ def pv(config, datapackage_dir):
 
     sequences_df.index = building.timeindex(
         year=str(config["temporal"]["scenario_year"]))
-    path = building.write_sequences(
+    building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
         directory=os.path.join(datapackage_dir, "data", "sequences"),
@@ -49,18 +44,6 @@ def pv(config, datapackage_dir):
 def wind(config, datapackage_dir):
     """
     """
-    # off_filepath = building.download_data(
-    #     "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
-    #     unzip_file="ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
-    #     local_path=os.path.join(datapackage_dir, "cache"),
-    # )
-    #
-    # near_term_path = building.download_data(
-    #     "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
-    #     unzip_file="ninja_wind_europe_v1.1_current_national.csv",
-    #     local_path=os.path.join(datapackage_dir, "cache"),
-    # )
-
     off_filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
                                 "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv")
 
@@ -68,11 +51,6 @@ def wind(config, datapackage_dir):
                                 "ninja_wind_europe_v1.1_current_national.csv")
 
     year = str(config["temporal"]["weather_year"])
-
-    # not in ninja dataset, as new market zones? (replace by german factor)
-    missing = ["LU" "CZ" "AT" "CH"]
-
-    countries = list(set(config["buses"]["electricity"]) - set(missing))
 
     near_term = pd.read_csv(near_term_path, index_col=[0], parse_dates=True)
     # for lead year...
@@ -102,7 +80,7 @@ def wind(config, datapackage_dir):
     sequences_df.index = building.timeindex(
         year=str(config['temporal']["scenario_year"]))
 
-    path = building.write_sequences(
+    building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
         directory=os.path.join(datapackage_dir, "data", "sequences"),

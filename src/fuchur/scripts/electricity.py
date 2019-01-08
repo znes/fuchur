@@ -5,9 +5,7 @@ import logging
 import json
 import os
 
-from xlrd import open_workbook, XLRDError
-
-from datapackage import Package, Resource
+from datapackage import Package
 import pandas as pd
 
 from oemof.tabular.datapackage import building
@@ -30,18 +28,8 @@ def load(buses, temporal, datapackage_dir,
         df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
     else:
         logging.info(
-            "File for e-Highway loads does not exist. Trying to download.."
+            "File for e-Highway loads does not exist. Did you download data?"
         )
-        filepath = building.download_data(
-            "http://www.e-highway2050.eu/fileadmin/documents/Results/"
-            + filename,
-            local_path=os.path.join(datapackage_dir, "cache"),
-        )
-        try:
-            book = open_workbook(filepath)
-            df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
-        except XLRDError as e:
-            raise XLRDError("Downloaded file not valid xlsx file.")
 
     df.set_index("Unnamed: 1", inplace=True)
     df.drop(df.index[0:1], inplace=True)
@@ -64,7 +52,7 @@ def load(buses, temporal, datapackage_dir,
     elements.bus = [b + "-electricity" for b in elements.bus]
     elements["amount"] = elements["amount"] * 1000  # to MWh
 
-    path = building.write_elements(
+    building.write_elements(
         "load.csv",
         elements,
         directory=os.path.join(datapackage_dir, "data/elements"),
@@ -72,15 +60,13 @@ def load(buses, temporal, datapackage_dir,
 
     filepath = os.path.join(raw_data_path,
                             "time_series_60min_singleindex.csv")
+    if os.path.exists(filepath):
+        raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
+    else:
+        logging.info(
+            "File for OPSD loads does not exist. Did you download data?"
+        )
 
-    # # now we are adding the sequences
-    # filepath = building.download_data(
-    #     "https://data.open-power-system-data.org/time_series/2017-07-09/"
-    #     + "time_series_60min_singleindex.csv",
-    #     local_path=os.path.join(datapackage_dir, "cache"),
-    # )
-
-    raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
 
     suffix = "_load_old"
 
@@ -124,7 +110,7 @@ def load(buses, temporal, datapackage_dir,
     sequences_df.index = building.timeindex(
         year=str(temporal["scenario_year"]))
 
-    path = building.write_sequences(
+    building.write_sequences(
         "load_profile.csv",
         sequences_df,
         directory=os.path.join(datapackage_dir, "data/sequences"),
@@ -316,7 +302,7 @@ def generation(config, datapackage_dir):
 
     # write elements to CSV-files
     for element_type in set(techmap.values()):
-        path = building.write_elements(
+        building.write_elements(
             element_type + ".csv",
             df.loc[df["type"] == element_type].dropna(how="all", axis=1),
             directory=os.path.join(datapackage_dir, "data/elements"),
@@ -560,7 +546,7 @@ def excess(config, datapackage_dir):
 
     elements.set_index("name", inplace=True)
 
-    path = building.write_elements(
+    building.write_elements(
         "excess.csv",
         elements,
         directory=os.path.join(datapackage_dir, "data/elements"),

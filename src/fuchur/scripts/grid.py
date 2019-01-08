@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 """
-import json
 import os
 import re
 import pandas as pd
 
-from geojson import FeatureCollection, Feature
 from oemof.tabular.datapackage import building
-from oemof.tabular.tools import geometry
-from oemof.tools.economics import annuity
 
 import fuchur
 
@@ -75,23 +71,7 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
             filepath, sheet_name="T94", index_col=[1], skiprows=[0, 1, 3]
         ).fillna(0)
     else:
-        # if file does not exist, try to download and check if valid xlsx file
-        print("File for e-Highway capacities does not exist. Download..")
-        filepath = building.download_data(
-            "http://www.e-highway2050.eu/fileadmin/documents/" + filename,
-            local_path=os.path.join(datapackage_dir, "cache"),
-        )
-        try:
-            book = open_workbook(filepath)
-            df_2030 = pd.read_excel(
-                filepath, sheet_name="T93", index_col=[1], skiprows=[0, 1, 3]
-            ).fillna(0)
-
-            df_2050 = pd.read_excel(
-                filepath, sheet_name="T94", index_col=[1], skiprows=[0, 1, 3]
-            ).fillna(0)
-        except XLRDError as e:
-            raise XLRDError("Downloaded file not valid xlsx file.")
+        print("File for e-Highway capacities does not exist. Did you download?")
 
     df_2050 = _prepare_frame(df_2050).set_index(["Links"])
     df_2030 = _prepare_frame(df_2030).set_index(["Links"])
@@ -120,7 +100,7 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
 
             elements[element_name] = element
 
-    path = building.write_elements(
+    building.write_elements(
         "link.csv",
         pd.DataFrame.from_dict(elements, orient="index"),
         directory=os.path.join(datapackage_dir, "data/elements"),

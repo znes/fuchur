@@ -1,6 +1,4 @@
 
-import os
-
 from oemof.tabular.datapackage import building
 
 import fuchur
