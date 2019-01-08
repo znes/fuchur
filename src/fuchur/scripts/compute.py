@@ -73,6 +73,10 @@ def compute(ctx):
     modelstats = outputlib.processing.meta_results(m)
     modelstats.pop("solver")
     modelstats["problem"].pop("Sense")
+    # TODO: This is not model stats -> move somewhere else! 
+    modelstats["temporal_resolution"] = temporal_resolution
+    modelstats["emission_limit"] = emission_limit
+
     with open(os.path.join(scenario_path, "modelstats.json"), "w") as outfile:
         json.dump(modelstats, outfile, indent=4)
 
