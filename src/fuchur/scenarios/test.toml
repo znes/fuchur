@@ -26,8 +26,7 @@ weather_year = 2012
 demand_year = 2012
 
 [potential]
-wind = "LIMES-EU"
-pv = "LIMES-EU"
+renewables = "LIMES-EU"
 biomass = "hotmaps"
 
 [buses]

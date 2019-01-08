@@ -26,8 +26,7 @@ weather_year = 2012
 demand_year = 2012
 
 [potential]
-wind = "LIMES-EU"
-pv = "LIMES-EU"
+renewables = "LIMES-EU"
 biomass = "hotmaps"
 
 [buses]
@@ -39,6 +38,7 @@ electricity = [
     "CH",
     "CZ",
     "DE",
+    "DK",
     "ES",
     "FI",
     "FR",
@@ -48,7 +48,6 @@ electricity = [
     "IT",
     "LT",
     "LV",
-    "MK",
     "NL",
     "NO",
     "PL",
@@ -67,6 +66,7 @@ biomass = [
     "CH",
     "CZ",
     "DE",
+    "DK",
     "ES",
     "FI",
     "FR",
@@ -76,7 +76,6 @@ biomass = [
     "IT",
     "LT",
     "LV",
-    "MK",
     "NL",
     "NO",
     "PL",

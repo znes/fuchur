@@ -68,16 +68,17 @@ def wind(config, datapackage_dir):
 
     sequences_df = pd.DataFrame(index=near_term.loc[year].index)
 
+    NorthSea = ["DE", "DK", "NO", "NL", "BE", "GB", "SE"]
+
     for c in config["buses"]["electricity"]:
         # add offshore profile if country exists in offshore data columns
-        if [col for col in offshore_data.columns if c + "_OFF" in col]:
+        # and if its in NorthSea
+        if [col for col in offshore_data.columns if c + "_OFF" in col] and \
+        c in NorthSea:
             sequences_df[c + "-wind-off-profile"] = offshore_data[c + "_OFF"]
-        # hack as poland is not in ninja, therfore we take SE offshore profile
-        elif c == "PL":
-            sequences_df[c + "-wind-off-profile"] = offshore_data["SE_OFF"]
+
 
         sequence_name = c + "-wind-on-profile"
-
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
     sequences_df.index = building.timeindex(

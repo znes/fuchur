@@ -157,7 +157,7 @@ def generation(config, datapackage_dir):
     )
     potential = pd.DataFrame(potential).set_index(["country", "tech"])
     potential = potential.loc[
-        potential["source"] == config["potential"]
+        potential["source"] == config["potential"]["renewables"]
     ].to_dict()
 
     for tech in technologies:
@@ -241,14 +241,15 @@ def generation(config, datapackage_dir):
                     # ep = {'summed_max': float(bio_potential['value'].get(
                     #     (r, tech), 0)) * 1e6}) # TWh to MWh
 
-                elif techmap.get(tech) == "volatile":
+
+                if techmap.get(tech) == "volatile":
                     if "wind_off" in tech:
                         profile = r + "-wind-off-profile"
                     elif "wind_on" in tech:
                         profile = r + "-wind-on-profile"
                     elif "pv" in tech:
                         profile = r + "-pv-profile"
-
+                    
                     element.update(
                         {
                             "capacity_cost": annuity(
@@ -295,7 +296,7 @@ def generation(config, datapackage_dir):
                     )
 
     df = pd.DataFrame.from_dict(elements, orient="index")
-    # drop storage capacity cost to avoid duplicat investment
+    # drop storage capacity cost to avoid duplicate investment
     df = df.drop("storage_capacity_cost", axis=1)
 
     df = df[(df[["capacity_potential"]] != 0).all(axis=1)]
@@ -441,7 +442,7 @@ def hydro_generation(config, datapackage_dir):
 
     ror = ror.assign(**technologies["ror"])[ror["capacity"] > 0].dropna()
     ror["profile"] = ror["bus"] + "-" + ror["tech"] + "-profile"
-    
+
     ror_sequences = (inflows[ror.index] * ror_shares[ror.index] * 1000) / ror[
         "capacity"
     ]

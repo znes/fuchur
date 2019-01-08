@@ -98,7 +98,7 @@ def _construct(config, ctx):
     help="Temporal resolution used for calculation.",
     )
 @click.option(
-    "--emission_limit",
+    "--emission-limit",
     default=50e6,
     help="Limit for CO2 emission in tons",
     )

@@ -63,20 +63,23 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     bio_potential = pd.DataFrame(bio_potential).set_index(
         ["country", "carrier"]
     )
+    bio_potential.rename(index={"UK": "GB"}, inplace=True)
+
     bio_potential = bio_potential.loc[
         bio_potential["source"] == "hotmaps"
     ].to_dict()
 
+
     if buses.get('biomass'):
         for b in buses['biomass']:
             bus_name = b + "-biomass-bus"
-            commodity_name = b + "biomass-commodity"
+            commodity_name = b + "-biomass-commodity"
 
             commodities[commodity_name] = {
                 "type": "dispatchable",
                 "carrier": 'biomass',
                 "bus": bus_name,
-                "capacity": float(bio_potential["value"].get((r, 'biomass'), 0))
+                "capacity": float(bio_potential["value"].get((b, 'biomass'), 0))
                 * 1e6,  # TWh -> MWh
                 "output_parameters": json.dumps({"summed_max": 1}),
             }
