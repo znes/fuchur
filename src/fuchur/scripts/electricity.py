@@ -441,7 +441,7 @@ def hydro_generation(config, datapackage_dir):
 
     ror = ror.assign(**technologies["ror"])[ror["capacity"] > 0].dropna()
     ror["profile"] = ror["bus"] + "-" + ror["tech"] + "-profile"
-    import pdb;pdb.set_trace()
+    
     ror_sequences = (inflows[ror.index] * ror_shares[ror.index] * 1000) / ror[
         "capacity"
     ]
