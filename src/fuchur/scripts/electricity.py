@@ -67,7 +67,6 @@ def load(buses, temporal, datapackage_dir,
             "File for OPSD loads does not exist. Did you download data?"
         )
 
-
     suffix = "_load_old"
 
     year = str(temporal["demand_year"])
