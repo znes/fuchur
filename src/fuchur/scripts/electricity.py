@@ -348,9 +348,12 @@ def _get_hydro_inflow(inflow_dir=None):
         "SE",
         "SI",
         "SK",
+        "UK"
     ]
 
     hyd = pd.DataFrame({cname: read_inflow(cname) for cname in europe})
+
+    hyd.rename(columns={'UK': 'GB'}, inplace=True)  # for ISO country code
 
     hydro = hyd.resample("H").interpolate("cubic")
 
@@ -369,7 +372,7 @@ def _get_hydro_inflow(inflow_dir=None):
     # remove last day in Feb for leap years
     hydro = hydro[~((hydro.index.month == 2) & (hydro.index.day == 29))]
 
-    if True:  # default norm
+    if True:  #  default norm
         normalization_factor = hydro.index.size / float(
             hyd.index.size
         )  # normalize to new sampling frequency
@@ -386,24 +389,16 @@ def hydro_generation(config, datapackage_dir):
     countries, year = config["buses"]["electricity"], config["temporal"]["scenario_year"]
 
     capacities = pd.read_csv(
-        # building.download_data(
-        #     "https://zenodo.org/record/804244/files/hydropower.csv?download=1",
-        #     local_path=os.path.join(datapackage_dir, "cache"),
-        # ),
         os.path.join(fuchur.__RAW_DATA_PATH__, 'hydropower.csv'),
         index_col=["ctrcode"],
     )
+    capacities.rename(index={"UK": "GB"}, inplace=True)  # for iso code
 
     capacities.loc["CH"] = [8.8, 12, 1.9]  # add CH elsewhere
 
     inflows = _get_hydro_inflow(
         inflow_dir=os.path.join(fuchur.__RAW_DATA_PATH__, 'Hydro_Inflow')
-        # building.download_data(
-        #     "https://zenodo.org/record/804244/files/Hydro_Inflow.zip?download=1",
-        #     unzip_file="Hydro_Inflow/",
-        #     local_path=os.path.join(datapackage_dir, "cache"),
-        # )
-    )
+        )
 
     inflows = inflows.loc[inflows.index.year == config["temporal"]["weather_year"], :]
     inflows["DK"], inflows["LU"] = 0, inflows["BE"]
@@ -446,7 +441,7 @@ def hydro_generation(config, datapackage_dir):
 
     ror = ror.assign(**technologies["ror"])[ror["capacity"] > 0].dropna()
     ror["profile"] = ror["bus"] + "-" + ror["tech"] + "-profile"
-
+    import pdb;pdb.set_trace()
     ror_sequences = (inflows[ror.index] * ror_shares[ror.index] * 1000) / ror[
         "capacity"
     ]

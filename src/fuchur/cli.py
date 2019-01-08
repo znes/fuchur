@@ -134,4 +134,3 @@ def compute(ctx):
 
 def main():
     cli(obj={})
-    

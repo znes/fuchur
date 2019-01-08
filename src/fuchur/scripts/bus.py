@@ -29,6 +29,8 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
 
     nuts0 = pd.Series(geometry.nuts(filepath, nuts=0, tolerance=0.1))
 
+    nuts0.index = [i.replace("UK", "GB") for i in nuts0.index]
+
     el_buses = pd.Series(name="geometry")
     el_buses.index.name = "name"
 

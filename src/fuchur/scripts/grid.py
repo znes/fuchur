@@ -18,6 +18,8 @@ def _prepare_frame(df):
     df.reset_index(inplace=True)
     df["Links"] = df["Links"].apply(lambda row: row.upper())
 
+    df["Links"] = [i.replace('UK', 'GB') for i in df['Links']] # for ISO code
+
     # remove all links inside countries
     df = df.loc[df["Links"].apply(_remove_links)]
 
@@ -38,6 +40,8 @@ def _prepare_frame(df):
         ],
         axis=1,
     )
+
+
     return df
 
 

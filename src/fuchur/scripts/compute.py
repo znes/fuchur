@@ -103,5 +103,5 @@ def compute(ctx):
         * temporal_resolution
     )
     supply_sum.columns = supply_sum.columns.droplevel(0)
-    summary = supply_sum #pd.concat([supply_sum, excess_share], axis=1)
+    summary = supply_sum  # pd.concat([supply_sum, excess_share], axis=1)
     summary.to_csv(os.path.join(scenario_path, 'summary.csv'))
