@@ -5,15 +5,14 @@ import logging
 import json
 import os
 
-from xlrd import open_workbook, XLRDError
-
-from datapackage import Package, Resource
+from datapackage import Package
 import pandas as pd
 
 from oemof.tabular.datapackage import building
 from oemof.tools.economics import annuity
 
 import fuchur
+
 
 def load(buses, temporal, datapackage_dir,
          raw_data_path=fuchur.__RAW_DATA_PATH__):
@@ -24,24 +23,14 @@ def load(buses, temporal, datapackage_dir,
     filepath = os.path.join(raw_data_path,
                             filename)
 
-    if temporal["year"] == 2050:
+    if temporal["scenario_year"] == 2050:
         sheet = "T40"
     if os.path.exists(filepath):
         df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
     else:
         logging.info(
-            "File for e-Highway loads does not exist. Trying to download.."
+            "File for e-Highway loads does not exist. Did you download data?"
         )
-        filepath = building.download_data(
-            "http://www.e-highway2050.eu/fileadmin/documents/Results/"
-            + filename,
-            local_path=os.path.join(datapackage_dir, "cache"),
-        )
-        try:
-            book = open_workbook(filepath)
-            df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
-        except XLRDError as e:
-            raise XLRDError("Downloaded file not valid xlsx file.")
 
     df.set_index("Unnamed: 1", inplace=True)
     df.drop(df.index[0:1], inplace=True)
@@ -64,7 +53,7 @@ def load(buses, temporal, datapackage_dir,
     elements.bus = [b + "-electricity" for b in elements.bus]
     elements["amount"] = elements["amount"] * 1000  # to MWh
 
-    path = building.write_elements(
+    building.write_elements(
         "load.csv",
         elements,
         directory=os.path.join(datapackage_dir, "data/elements"),
@@ -72,15 +61,12 @@ def load(buses, temporal, datapackage_dir,
 
     filepath = os.path.join(raw_data_path,
                             "time_series_60min_singleindex.csv")
-
-    # # now we are adding the sequences
-    # filepath = building.download_data(
-    #     "https://data.open-power-system-data.org/time_series/2017-07-09/"
-    #     + "time_series_60min_singleindex.csv",
-    #     local_path=os.path.join(datapackage_dir, "cache"),
-    # )
-
-    raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
+    if os.path.exists(filepath):
+        raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
+    else:
+        logging.info(
+            "File for OPSD loads does not exist. Did you download data?"
+        )
 
     suffix = "_load_old"
 
@@ -121,9 +107,10 @@ def load(buses, temporal, datapackage_dir,
             ~((sequences_df.index.month == 2) & (sequences_df.index.day == 29))
         ]
 
-    sequences_df.index = building.timeindex(year=temporal["year"])
+    sequences_df.index = building.timeindex(
+        year=str(temporal["scenario_year"]))
 
-    path = building.write_sequences(
+    building.write_sequences(
         "load_profile.csv",
         sequences_df,
         directory=os.path.join(datapackage_dir, "data/sequences"),
@@ -159,7 +146,7 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["year"]].to_dict()
+    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
 
     potential = (
         Package(
@@ -170,7 +157,7 @@ def generation(config, datapackage_dir):
     )
     potential = pd.DataFrame(potential).set_index(["country", "tech"])
     potential = potential.loc[
-        potential["source"] == config["potential"]
+        potential["source"] == config["potential"]["renewables"]
     ].to_dict()
 
     for tech in technologies:
@@ -185,7 +172,7 @@ def generation(config, datapackage_dir):
     carrier = pd.read_csv(
         os.path.join(fuchur.__RAW_DATA_PATH__,
                      "carrier.csv"), index_col=[0, 1]
-    ).loc[("base", config["temporal"]["year"])]
+    ).loc[("base", config["temporal"]["scenario_year"])]
     carrier.set_index("carrier", inplace=True)
 
     elements = {}
@@ -254,7 +241,10 @@ def generation(config, datapackage_dir):
                     # ep = {'summed_max': float(bio_potential['value'].get(
                     #     (r, tech), 0)) * 1e6}) # TWh to MWh
 
-                elif techmap.get(tech) == "volatile":
+
+                if techmap.get(tech) == "volatile":
+                    NorthSea = ["DE", "DK", "NO", "NL", "BE", "GB", "SE"]
+
                     if "wind_off" in tech:
                         profile = r + "-wind-off-profile"
                     elif "wind_on" in tech:
@@ -262,23 +252,28 @@ def generation(config, datapackage_dir):
                     elif "pv" in tech:
                         profile = r + "-pv-profile"
 
-                    element.update(
-                        {
-                            "capacity_cost": annuity(
-                                float(data["capacity_cost"]),
-                                float(data["lifetime"]),
-                                wacc,
-                            )
-                            * 1000,
-                            "capacity_potential": potential[
-                                "capacity_potential"
-                            ].get((r, tech), "Infinity"),
-                            "bus": r + "-electricity",
-                            "tech": tech,
-                            "type": "volatile",
-                            "profile": profile,
-                        }
-                    )
+                    e = {
+                        "capacity_cost": annuity(
+                            float(data["capacity_cost"]),
+                            float(data["lifetime"]),
+                            wacc,
+                        )
+                        * 1000,
+                        "capacity_potential": potential[
+                            "capacity_potential"
+                        ].get((r, tech), 0),
+                        "bus": r + "-electricity",
+                        "tech": tech,
+                        "type": "volatile",
+                        "profile": profile,
+                    }
+                    # only add all technologies that are not offshore or
+                    # if offshore in the NorthSea list 
+                    if "wind_off" in tech and r not in NorthSea:
+                        pass
+                    else:
+                        element.update(e)
+
 
                 elif techmap[tech] == "storage":
                     if tech == "acaes" and r != "DE":
@@ -308,14 +303,14 @@ def generation(config, datapackage_dir):
                     )
 
     df = pd.DataFrame.from_dict(elements, orient="index")
-    # drop storage capacity cost to avoid duplicat investment
+    # drop storage capacity cost to avoid duplicate investment
     df = df.drop("storage_capacity_cost", axis=1)
 
     df = df[(df[["capacity_potential"]] != 0).all(axis=1)]
 
     # write elements to CSV-files
     for element_type in set(techmap.values()):
-        path = building.write_elements(
+        building.write_elements(
             element_type + ".csv",
             df.loc[df["type"] == element_type].dropna(how="all", axis=1),
             directory=os.path.join(datapackage_dir, "data/elements"),
@@ -361,9 +356,12 @@ def _get_hydro_inflow(inflow_dir=None):
         "SE",
         "SI",
         "SK",
+        "UK"
     ]
 
     hyd = pd.DataFrame({cname: read_inflow(cname) for cname in europe})
+
+    hyd.rename(columns={'UK': 'GB'}, inplace=True)  # for ISO country code
 
     hydro = hyd.resample("H").interpolate("cubic")
 
@@ -382,7 +380,7 @@ def _get_hydro_inflow(inflow_dir=None):
     # remove last day in Feb for leap years
     hydro = hydro[~((hydro.index.month == 2) & (hydro.index.day == 29))]
 
-    if True:  # default norm
+    if True:  #  default norm
         normalization_factor = hydro.index.size / float(
             hyd.index.size
         )  # normalize to new sampling frequency
@@ -396,27 +394,19 @@ def _get_hydro_inflow(inflow_dir=None):
 def hydro_generation(config, datapackage_dir):
     """
     """
-    countries, year = config["buses"]["electricity"], config["temporal"]["year"]
+    countries, year = config["buses"]["electricity"], config["temporal"]["scenario_year"]
 
     capacities = pd.read_csv(
-        # building.download_data(
-        #     "https://zenodo.org/record/804244/files/hydropower.csv?download=1",
-        #     local_path=os.path.join(datapackage_dir, "cache"),
-        # ),
         os.path.join(fuchur.__RAW_DATA_PATH__, 'hydropower.csv'),
         index_col=["ctrcode"],
     )
+    capacities.rename(index={"UK": "GB"}, inplace=True)  # for iso code
 
     capacities.loc["CH"] = [8.8, 12, 1.9]  # add CH elsewhere
 
     inflows = _get_hydro_inflow(
         inflow_dir=os.path.join(fuchur.__RAW_DATA_PATH__, 'Hydro_Inflow')
-        # building.download_data(
-        #     "https://zenodo.org/record/804244/files/Hydro_Inflow.zip?download=1",
-        #     unzip_file="Hydro_Inflow/",
-        #     local_path=os.path.join(datapackage_dir, "cache"),
-        # )
-    )
+        )
 
     inflows = inflows.loc[inflows.index.year == config["temporal"]["weather_year"], :]
     inflows["DK"], inflows["LU"] = 0, inflows["BE"]
@@ -487,8 +477,7 @@ def hydro_generation(config, datapackage_dir):
     # other hydro / reservoir
     rsv = pd.DataFrame(index=countries)
     rsv["type"], rsv["tech"], rsv["bus"], rsv["loss"], rsv["capacity"], rsv[
-        "storage_capacity"
-    ] = (
+        "storage_capacity"] = (
         "reservoir",
         "reservoir",
         rsv.index.astype(str) + "-electricity",
@@ -506,7 +495,7 @@ def hydro_generation(config, datapackage_dir):
 
     rsv = rsv.assign(**technologies["reservoir"])[rsv["capacity"] > 0].dropna()
     rsv["profile"] = rsv["bus"] + "-" + rsv["tech"] + "-profile"
-
+    rsv["efficiency"] = 1  # as inflow is already in MWelec -> no conversion needed
     rsv_sequences = (
         inflows[rsv.index] * (1 - ror_shares[rsv.index]) * 1000
     )  # GWh -> MWh
@@ -516,13 +505,21 @@ def hydro_generation(config, datapackage_dir):
     # in meta data
     building.write_sequences(
         "reservoir_profile.csv",
-        rsv_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
+        rsv_sequences.set_index(
+            building.timeindex(
+                year=str(config["temporal"]["scenario_year"])
+            )
+        ),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
     building.write_sequences(
         "ror_profile.csv",
-        ror_sequences.set_index(building.timeindex(year=config["temporal"]["year"])),
+        ror_sequences.set_index(
+            building.timeindex(
+                year=str(config["temporal"]["scenario_year"])
+            )
+        ),
         directory=os.path.join(datapackage_dir, "data", "sequences"),
     )
 
@@ -558,7 +555,7 @@ def excess(config, datapackage_dir):
 
     elements.set_index("name", inplace=True)
 
-    path = building.write_elements(
+    building.write_elements(
         "excess.csv",
         elements,
         directory=os.path.join(datapackage_dir, "data/elements"),
