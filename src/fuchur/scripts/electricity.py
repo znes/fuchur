@@ -243,30 +243,37 @@ def generation(config, datapackage_dir):
 
 
                 if techmap.get(tech) == "volatile":
+                    NorthSea = ["DE", "DK", "NO", "NL", "BE", "GB", "SE"]
+
                     if "wind_off" in tech:
                         profile = r + "-wind-off-profile"
                     elif "wind_on" in tech:
                         profile = r + "-wind-on-profile"
                     elif "pv" in tech:
                         profile = r + "-pv-profile"
-                    
-                    element.update(
-                        {
-                            "capacity_cost": annuity(
-                                float(data["capacity_cost"]),
-                                float(data["lifetime"]),
-                                wacc,
-                            )
-                            * 1000,
-                            "capacity_potential": potential[
-                                "capacity_potential"
-                            ].get((r, tech), "Infinity"),
-                            "bus": r + "-electricity",
-                            "tech": tech,
-                            "type": "volatile",
-                            "profile": profile,
-                        }
-                    )
+
+                    e = {
+                        "capacity_cost": annuity(
+                            float(data["capacity_cost"]),
+                            float(data["lifetime"]),
+                            wacc,
+                        )
+                        * 1000,
+                        "capacity_potential": potential[
+                            "capacity_potential"
+                        ].get((r, tech), 0),
+                        "bus": r + "-electricity",
+                        "tech": tech,
+                        "type": "volatile",
+                        "profile": profile,
+                    }
+                    # only add all technologies that are not offshore or
+                    # if offshore in the NorthSea list 
+                    if "wind_off" in tech and r not in NorthSea:
+                        pass
+                    else:
+                        element.update(e)
+
 
                 elif techmap[tech] == "storage":
                     if tech == "acaes" and r != "DE":
