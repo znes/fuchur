@@ -135,7 +135,8 @@ def generation(config, datapackage_dir):
 
     technologies = pd.DataFrame(
         Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/technology-cost/master/datapackage.json"
+            "https://raw.githubusercontent.com/ZNES-datapackages/"
+            "technology-cost/master/datapackage.json"
         )
         .get_resource("electricity")
         .read(keyed=True)
@@ -146,11 +147,14 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
+    technologies = technologies.loc[
+        config["temporal"]["scenario_year"]
+    ].to_dict()
 
     potential = (
         Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/technology-potential/master/datapackage.json"
+            "https://raw.githubusercontent.com/ZNES-datapackages/"
+            "technology-potential/master/datapackage.json"
         )
         .get_resource("renewable")
         .read(keyed=True)
@@ -385,7 +389,8 @@ def _get_hydro_inflow(inflow_dir=None):
             hyd.index.size
         )  # normalize to new sampling frequency
     # else:
-    #    normalization_factor = hydro.sum() / hyd.sum() #conserve total inflow for each country separately
+    #     # conserve total inflow for each country separately
+    #    normalization_factor = hydro.sum() / hyd.sum()
     hydro /= normalization_factor
 
     return hydro
