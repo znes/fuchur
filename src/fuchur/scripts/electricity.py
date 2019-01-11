@@ -389,7 +389,8 @@ def _get_hydro_inflow(inflow_dir=None):
             hyd.index.size
         )  # normalize to new sampling frequency
     # else:
-    #    normalization_factor = hydro.sum() / hyd.sum() #conserve total inflow for each country separately
+    #     # conserve total inflow for each country separately
+    #    normalization_factor = hydro.sum() / hyd.sum()
     hydro /= normalization_factor
 
     return hydro
