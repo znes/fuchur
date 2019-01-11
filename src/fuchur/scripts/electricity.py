@@ -135,7 +135,8 @@ def generation(config, datapackage_dir):
 
     technologies = pd.DataFrame(
         Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/technology-cost/master/datapackage.json"
+            "https://raw.githubusercontent.com/ZNES-datapackages/"
+            "technology-cost/master/datapackage.json"
         )
         .get_resource("electricity")
         .read(keyed=True)
