@@ -151,7 +151,8 @@ def generation(config, datapackage_dir):
 
     potential = (
         Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/technology-potential/master/datapackage.json"
+            "https://raw.githubusercontent.com/ZNES-datapackages/"
+            "technology-potential/master/datapackage.json"
         )
         .get_resource("renewable")
         .read(keyed=True)
