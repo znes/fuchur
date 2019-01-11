@@ -22,6 +22,14 @@ from oemof.tabular import datapackage
 from fuchur.scripts import bus, electricity, grid, capacity_factors
 from fuchur.scripts import compute as _compute
 
+import fuchur
+
+def _download_rawdata():
+    datapackage.building.download_data(
+        "sftp://5.35.252.104/home/rutherford/fuchur-raw-data.zip",
+        username="rutherford", directory=fuchur.__RAW_DATA_PATH__,
+        unzip_file="fuchur-raw-data/")
+
 
 def _construct(config, ctx):
     """
@@ -131,6 +139,10 @@ def construct(ctx, config):
 def compute(ctx):
     _compute.compute(ctx)
 
+@cli.command()
+@click.pass_context
+def download(ctx):
+    _download_rawdata(ctx)
 
 def main():
     cli(obj={})
