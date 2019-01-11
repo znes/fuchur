@@ -147,7 +147,9 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
+    technologies = technologies.loc[
+        config["temporal"]["scenario_year"]
+    ].to_dict()
 
     potential = (
         Package(
