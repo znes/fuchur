@@ -55,7 +55,8 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
 
     bio_potential = (
         Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/technology-potential/master/datapackage.json"
+            "https://raw.githubusercontent.com/ZNES-datapackages/"
+            "technology-potential/master/datapackage.json"
         )
         .get_resource("carrier")
         .read(keyed=True)
