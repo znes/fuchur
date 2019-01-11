@@ -64,7 +64,7 @@ def compute(ctx):
 
     m.receive_duals()
 
-    m.solve(ctx.obj["SOLVER"])
+    m.solve(ctx.obj["solver"])
 
     m.results = m.results()
 
