@@ -17,14 +17,14 @@ def compute(ctx):
     """
     p = Package(
         os.path.join(
-            ctx.obj["DATPACKAGE_DIR"], 'datapackage.json')
+            ctx.obj["datapackage_dir"], 'datapackage.json')
         )
 
-    temporal_resolution = ctx.obj["TEMPORAL_RESOLUTION"]
-    emission_limit = ctx.obj["EMISSION_LIMIT"]
+    temporal_resolution = ctx.obj["temporal_resolution"]
+    emission_limit = ctx.obj["emission_limit"]
 
     # create results path
-    scenario_path = os.path.join(ctx.obj["RESULTS_DIR"], p.descriptor["name"])
+    scenario_path = os.path.join(ctx.obj["results_dir"], p.descriptor["name"])
     if not os.path.exists(scenario_path):
         os.makedirs(scenario_path)
 
@@ -40,14 +40,14 @@ def compute(ctx):
     if temporal_resolution > 1:
         logging.info("Aggregating for temporal aggregation ... ")
         path = aggregation.temporal_skip(
-            os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
+            os.path.join(ctx.obj["datapackage_dir"], "datapackage.json"),
             temporal_resolution,
             path=scenario_path,
             name="input"
         )
     else:
         path = processing.copy_datapackage(
-            os.path.join(ctx.obj["DATPACKAGE_DIR"], "datapackage.json"),
+            os.path.join(ctx.obj["datapackage_dir"], "datapackage.json"),
             os.path.abspath(os.path.join(scenario_path, "input")),
             subset="data",
         )
@@ -73,7 +73,7 @@ def compute(ctx):
     modelstats = outputlib.processing.meta_results(m)
     modelstats.pop("solver")
     modelstats["problem"].pop("Sense")
-    # TODO: This is not model stats -> move somewhere else! 
+    # TODO: This is not model stats -> move somewhere else!
     modelstats["temporal_resolution"] = temporal_resolution
     modelstats["emission_limit"] = emission_limit
 

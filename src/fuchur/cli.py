@@ -38,31 +38,31 @@ def _construct(config, ctx):
         Config dict for contructing the datapackage
     """
 
-    datapackage.processing.clean_datapackage(
-        path=ctx.obj["DATPACKAGE_DIR"],
+    datapackage.processing.clean(
+        path=ctx.obj["datapackage_dir"],
         directories=["data", "resources"]
     )
 
-    datapackage.building.initialize_datapackage(
+    datapackage.building.initialize(
         config=config,
-        directory=ctx.obj["DATPACKAGE_DIR"])
+        directory=ctx.obj["datapackage_dir"])
 
-    bus.add(config['buses'], ctx.obj["DATPACKAGE_DIR"])
+    bus.add(config['buses'], ctx.obj["datapackage_dir"])
 
-    grid.add(config['buses'], ctx.obj["DATPACKAGE_DIR"])
+    grid.add(config['buses'], ctx.obj["datapackage_dir"])
 
     electricity.load(config['buses'], config['temporal'],
-                     ctx.obj["DATPACKAGE_DIR"])
+                     ctx.obj["datapackage_dir"])
 
-    electricity.generation(config, ctx.obj["DATPACKAGE_DIR"])
+    electricity.generation(config, ctx.obj["datapackage_dir"])
 
-    electricity.excess(config, ctx.obj["DATPACKAGE_DIR"])
+    electricity.excess(config, ctx.obj["datapackage_dir"])
 
-    electricity.hydro_generation(config, ctx.obj["DATPACKAGE_DIR"])
+    electricity.hydro_generation(config, ctx.obj["datapackage_dir"])
 
-    capacity_factors.pv(config, ctx.obj["DATPACKAGE_DIR"])
+    capacity_factors.pv(config, ctx.obj["datapackage_dir"])
 
-    capacity_factors.wind(config, ctx.obj["DATPACKAGE_DIR"])
+    capacity_factors.wind(config, ctx.obj["datapackage_dir"])
 
     datapackage.building.infer_metadata(
         package_name=config["name"],
@@ -84,7 +84,7 @@ def _construct(config, ctx):
             "from_to_bus": ["link", "conversion", "line"],
             "chp": ["backpressure", "extraction"],
         },
-        path=ctx.obj["DATPACKAGE_DIR"]
+        path=ctx.obj["datapackage_dir"]
     )
 
 
@@ -116,14 +116,8 @@ def _construct(config, ctx):
     help="Protect results from being overwritten.",
     )
 @click.pass_context
-def cli(ctx, solver, datapackage_dir, results_dir, temporal_resolution,
-        emission_limit, safe):
-    ctx.obj["SOLVER"] = solver
-    ctx.obj["DATPACKAGE_DIR"] = datapackage_dir
-    ctx.obj["RESULTS_DIR"] = results_dir
-    ctx.obj["TEMPORAL_RESOLUTION"] = temporal_resolution
-    ctx.obj["EMISSION_LIMIT"] = emission_limit
-    ctx.obj["SAFE"] = safe
+def cli(ctx, **kwargs):
+    ctx.obj = kwargs
 
 
 @cli.command()
