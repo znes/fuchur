@@ -19,7 +19,7 @@ import os
 import click
 from oemof.tabular import datapackage
 
-from fuchur.scripts import bus, electricity, grid, capacity_factors
+from fuchur.scripts import bus, electricity, grid, capacity_factors, heat
 from fuchur.scripts import compute as _compute
 
 import fuchur
@@ -52,7 +52,7 @@ def _construct(config, ctx):
     grid.add(config['buses'], ctx.obj["datapackage_dir"])
 
     electricity.load(config['buses'], config['temporal'],
-                     ctx.obj["datapackage_dir"])
+                    ctx.obj["datapackage_dir"])
 
     electricity.generation(config, ctx.obj["datapackage_dir"])
 
@@ -63,6 +63,16 @@ def _construct(config, ctx):
     capacity_factors.pv(config, ctx.obj["datapackage_dir"])
 
     capacity_factors.wind(config, ctx.obj["datapackage_dir"])
+
+    if config["buses"]["heat"]["decentral"] or \
+    config["buses"]["heat"]["central"]:
+        heat.load(config, ctx.obj["datapackage_dir"])
+
+    if config["buses"]["heat"]["decentral"]:
+        heat.decentral(config, ctx.obj["datapackage_dir"])
+
+    if config["buses"]["heat"]["central"]:
+        heat.central(config, ctx.obj["datapackage_dir"])
 
     datapackage.building.infer_metadata(
         package_name=config["name"],
