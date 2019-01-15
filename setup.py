@@ -69,6 +69,7 @@ setup(
     ],
     install_requires=[
         'click',
+        "oemof.tabular==0.0.1.dev0",
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={
@@ -76,6 +77,14 @@ setup(
         #   'rst': ['docutils>=0.11'],
         #   ':python_version=="2.6"': ['argparse'],
     },
+    dependency_links=(
+        [
+            (
+                "git+https://git@github.com/oemof/oemof-tabular.git"
+                "@features/postprocessing"
+                "#egg=oemof.tabular-0.0.1.dev0"
+            )
+        ]),
     entry_points={
         'console_scripts': [
             'fuchur = fuchur.cli:main',
