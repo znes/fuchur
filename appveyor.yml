@@ -103,7 +103,7 @@ environment:
       PYTHON_ARCH: '64'
 
   allow_failures:
-    - PYTHON_VERSION: '3.7'
+    PYTHON_VERSION: '3.7'
 
 init:
   - ps: echo $env:TOXENV
