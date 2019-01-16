@@ -1,15 +1,14 @@
 
-import os
 import json
 import logging
+import os
 
 from datapackage import Package
-
+from oemof.solph import Bus, EnergySystem, Model, constraints
 from oemof.tabular import facades
+from oemof.tabular.datapackage import aggregation, processing
 from oemof.tabular.tools import postprocessing as pp
-from oemof.tabular.datapackage import processing, aggregation
 import oemof.outputlib as outputlib
-from oemof.solph import EnergySystem, Model, Bus, constraints
 
 
 def compute(ctx):

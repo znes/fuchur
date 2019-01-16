@@ -3,9 +3,9 @@
 """
 import os
 import re
-import pandas as pd
 
 from oemof.tabular.datapackage import building
+import pandas as pd
 
 import fuchur
 
@@ -18,7 +18,7 @@ def _prepare_frame(df):
     df.reset_index(inplace=True)
     df["Links"] = df["Links"].apply(lambda row: row.upper())
 
-    df["Links"] = [i.replace('UK', 'GB') for i in df['Links']] # for ISO code
+    df["Links"] = [i.replace("UK", "GB") for i in df["Links"]]  # for ISO code
 
     # remove all links inside countries
     df = df.loc[df["Links"].apply(_remove_links)]
@@ -41,7 +41,6 @@ def _prepare_frame(df):
         axis=1,
     )
 
-
     return df
 
 
@@ -63,8 +62,7 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
 
     filename = "e-Highway_database_per_country-08022016.xlsx"
 
-    filepath = os.path.join(raw_data_path,
-                            filename)
+    filepath = os.path.join(raw_data_path, filename)
 
     if os.path.exists(filepath):
         # if file exist in archive use this file
@@ -76,7 +74,9 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
             filepath, sheet_name="T94", index_col=[1], skiprows=[0, 1, 3]
         ).fillna(0)
     else:
-        print("File for e-Highway capacities does not exist. Did you download?")
+        print(
+            "File for e-Highway capacities does not exist. Did you download?"
+        )
 
     df_2050 = _prepare_frame(df_2050).set_index(["Links"])
     df_2030 = _prepare_frame(df_2030).set_index(["Links"])
@@ -85,8 +85,10 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
 
     elements = {}
     for idx, row in df_2030.iterrows():
-        if row["from"] in buses["electricity"] and \
-        row["to"] in buses["electricity"]:
+        if (
+            row["from"] in buses["electricity"]
+            and row["to"] in buses["electricity"]
+        ):
 
             predecessor = row["from"] + "-electricity"
             successor = row["to"] + "-electricity"

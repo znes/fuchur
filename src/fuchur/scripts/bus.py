@@ -8,10 +8,9 @@ import json
 import os
 
 from datapackage import Package
-import pandas as pd
-
 from oemof.tabular.datapackage import building
 from oemof.tabular.tools import geometry
+import pandas as pd
 
 import fuchur
 
@@ -20,8 +19,9 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
 
-    filepath = os.path.join(raw_data_path,
-                            'NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp')
+    filepath = os.path.join(
+        raw_data_path, "NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp"
+    )
 
     if not os.path.exists(filepath):
         print("Shapefile data not found. Did you download raw data?")
@@ -34,11 +34,13 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     el_buses = pd.Series(name="geometry")
     el_buses.index.name = "name"
 
-    for r in buses['electricity']:
+    for r in buses["electricity"]:
         el_buses[r + "-electricity"] = nuts0[r]
     building.write_geometries(
-        "bus.geojson", el_buses,
-        os.path.join(datapackage_dir, "data/geometries"))
+        "bus.geojson",
+        el_buses,
+        os.path.join(datapackage_dir, "data/geometries"),
+    )
 
     # Add electricity buses
     bus_elements = {}
@@ -70,24 +72,25 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
         bio_potential["source"] == "hotmaps"
     ].to_dict()
 
-
-    if buses.get('biomass'):
-        for b in buses['biomass']:
+    if buses.get("biomass"):
+        for b in buses["biomass"]:
             bus_name = b + "-biomass-bus"
             commodity_name = b + "-biomass-commodity"
 
             commodities[commodity_name] = {
                 "type": "dispatchable",
-                "carrier": 'biomass',
+                "carrier": "biomass",
                 "bus": bus_name,
-                "capacity": float(bio_potential["value"].get((b, 'biomass'), 0))
+                "capacity": float(
+                    bio_potential["value"].get((b, "biomass"), 0)
+                )
                 * 1e6,  # TWh -> MWh
                 "output_parameters": json.dumps({"summed_max": 1}),
             }
 
             bus_elements[bus_name] = {
                 "type": "bus",
-                "carrier": 'biomass',
+                "carrier": "biomass",
                 "geometry": None,
                 "balanced": True,
             }
@@ -95,7 +98,7 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     # Add heat buses per  sub_bus and region (r)
     for sub_bus, regions in buses["heat"].items():
         for region in regions:
-            bus_elements['-'.join([region, "heat", sub_bus])] = {
+            bus_elements["-".join([region, "heat", sub_bus])] = {
                 "type": "bus",
                 "carrier": "heat",
                 "geometry": None,

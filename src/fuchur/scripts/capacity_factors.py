@@ -3,9 +3,8 @@
 """
 import os
 
-import pandas as pd
-
 from oemof.tabular.datapackage import building
+import pandas as pd
 
 import fuchur
 
@@ -13,8 +12,9 @@ import fuchur
 def pv(config, datapackage_dir):
     """
     """
-    filepath = os.path.join(fuchur.__RAW_DATA_PATH__,
-                            "ninja_pv_europe_v1.1_merra2.csv")
+    filepath = os.path.join(
+        fuchur.__RAW_DATA_PATH__, "ninja_pv_europe_v1.1_merra2.csv"
+    )
     year = str(config["temporal"]["weather_year"])
 
     countries = config["buses"]["electricity"]
@@ -34,7 +34,8 @@ def pv(config, datapackage_dir):
         sequences_df[sequence_name] = raw_data.loc[year][c].values
 
     sequences_df.index = building.timeindex(
-        year=str(config["temporal"]["scenario_year"]))
+        year=str(config["temporal"]["scenario_year"])
+    )
     building.write_sequences(
         "volatile_profile.csv",
         sequences_df,
@@ -47,11 +48,12 @@ def wind(config, datapackage_dir):
     """
     off_filepath = os.path.join(
         fuchur.__RAW_DATA_PATH__,
-        "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv")
+        "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
+    )
 
     near_term_path = os.path.join(
-        fuchur.__RAW_DATA_PATH__,
-        "ninja_wind_europe_v1.1_current_national.csv")
+        fuchur.__RAW_DATA_PATH__, "ninja_wind_europe_v1.1_current_national.csv"
+    )
 
     year = str(config["temporal"]["weather_year"])
 
@@ -73,16 +75,17 @@ def wind(config, datapackage_dir):
     for c in config["buses"]["electricity"]:
         # add offshore profile if country exists in offshore data columns
         # and if its in NorthSea
-        if [col for col in offshore_data.columns if c + "_OFF" in col] and \
-        c in NorthSea:
+        if [
+            col for col in offshore_data.columns if c + "_OFF" in col
+        ] and c in NorthSea:
             sequences_df[c + "-wind-off-profile"] = offshore_data[c + "_OFF"]
-
 
         sequence_name = c + "-wind-on-profile"
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
     sequences_df.index = building.timeindex(
-        year=str(config['temporal']["scenario_year"]))
+        year=str(config["temporal"]["scenario_year"])
+    )
 
     building.write_sequences(
         "volatile_profile.csv",

@@ -3,12 +3,11 @@
 """
 import json
 import os
-import pandas as pd
 
 from datapackage import Package
-
-from oemof.tools.economics import annuity
 from oemof.tabular.datapackage import building
+from oemof.tools.economics import annuity
+import pandas as pd
 
 import fuchur
 
@@ -47,54 +46,70 @@ def load(config, datapackage_dir):
 
     if elements:
         building.write_elements(
-            "load.csv", pd.DataFrame(elements).set_index("name"),
-            directory=os.path.join(datapackage_dir, "data/elements")
+            "load.csv",
+            pd.DataFrame(elements).set_index("name"),
+            directory=os.path.join(datapackage_dir, "data/elements"),
         )
-
 
         central_heat_load_profile = pd.DataFrame(
             data=pd.read_csv(
-                os.path.join(fuchur.__RAW_DATA_PATH__,
-                             "central_heat_load_profiles.csv"),
-                sep=";")[config["buses"]["heat"].get("central", [])].values,
-                columns=[
-                    p + "-central-heat-load-profile" for p in
-                    config["buses"]["heat"].get("central", [])
-                    ],
-                index=pd.date_range(
-                    str(config["temporal"]["scenario_year"]), periods=8760, freq="H"),
-                )
+                os.path.join(
+                    fuchur.__RAW_DATA_PATH__, "central_heat_load_profiles.csv"
+                ),
+                sep=";",
+            )[config["buses"]["heat"].get("central", [])].values,
+            columns=[
+                p + "-central-heat-load-profile"
+                for p in config["buses"]["heat"].get("central", [])
+            ],
+            index=pd.date_range(
+                str(config["temporal"]["scenario_year"]),
+                periods=8760,
+                freq="H",
+            ),
+        )
 
         building.write_sequences(
             "load_profile.csv",
             central_heat_load_profile,
-            directory=os.path.join(datapackage_dir, "data/sequences"))
+            directory=os.path.join(datapackage_dir, "data/sequences"),
+        )
 
         decentral_heat_load_profile = pd.DataFrame(
             data=pd.read_csv(
-                os.path.join(fuchur.__RAW_DATA_PATH__,
-                             "central_heat_load_profiles.csv"),
-            sep=";")[config["buses"]["heat"].get("decentral", [])].values,
+                os.path.join(
+                    fuchur.__RAW_DATA_PATH__, "central_heat_load_profiles.csv"
+                ),
+                sep=";",
+            )[config["buses"]["heat"].get("decentral", [])].values,
             columns=[
-                p + "-decentral-heat-load-profile" for p in
-                config["buses"]["heat"].get("decentral", [])
-                ],
+                p + "-decentral-heat-load-profile"
+                for p in config["buses"]["heat"].get("decentral", [])
+            ],
             index=pd.date_range(
-                str(config["temporal"]["scenario_year"]), periods=8760, freq="H"),
-            )
+                str(config["temporal"]["scenario_year"]),
+                periods=8760,
+                freq="H",
+            ),
+        )
 
     building.write_sequences(
         "load_profile.csv",
         decentral_heat_load_profile,
-        directory=os.path.join(datapackage_dir, "data/sequences"))
+        directory=os.path.join(datapackage_dir, "data/sequences"),
+    )
 
 
-def decentral(config, datapackage_dir, techmap = {
+def decentral(
+    config,
+    datapackage_dir,
+    techmap={
         "backpressure": "backpressure",
         "boiler_decentral": "dispatchable",
         "heatpump_decentral": "conversion",
         "hotwatertank_decentral": "storage",
-    }):
+    },
+):
 
     wacc = config["cost"]["wacc"]
 
@@ -113,18 +128,18 @@ def decentral(config, datapackage_dir, techmap = {
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
-
+    technologies = technologies.loc[
+        config["temporal"]["scenario_year"]
+    ].to_dict()
 
     carrier = pd.DataFrame(
         technology_cost.get_resource("carrier").read(keyed=True)
-    ).set_index(['carrier', 'parameter'])
+    ).set_index(["carrier", "parameter"])
 
     # maybe we should prepare emission factors for scenario year...
     emission = carrier[carrier.year == 2015]  # 2015 as emission not change
 
-    carrier = carrier[carrier.year ==
-                      config["temporal"]["scenario_year"]]
+    carrier = carrier[carrier.year == config["temporal"]["scenario_year"]]
 
     elements = dict()
 
@@ -143,17 +158,20 @@ def decentral(config, datapackage_dir, techmap = {
                         "type": techmap[tech],
                         "fuel_bus": "GL-" + entry["carrier"],
                         "carrier": entry["carrier"],
-                        "fuel_cost": carrier.at[(entry["carrier"], "cost"),
-                                                "value"],
+                        "fuel_cost": carrier.at[
+                            (entry["carrier"], "cost"), "value"
+                        ],
                         "electricity_bus": b + "-electricity",
                         "heat_bus": heat_bus,
                         "thermal_efficiency": entry["thermal_efficiency"],
                         "input_parameters": json.dumps(
                             {
-                                "emission_factor": float(emission.at[
-                                    (entry["carrier"], "emission-factor"),
-                                    "value"
-                                ])
+                                "emission_factor": float(
+                                    emission.at[
+                                        (entry["carrier"], "emission-factor"),
+                                        "value",
+                                    ]
+                                )
                             }
                         ),
                         "electric_efficiency": entry["electrical_efficiency"],
@@ -164,7 +182,7 @@ def decentral(config, datapackage_dir, techmap = {
                             float(entry["lifetime"]),
                             wacc,
                         )
-                        * 1000, # €/kW -> €/MW
+                        * 1000,  # €/kW -> €/MW
                     }
                 )
 
@@ -174,17 +192,21 @@ def decentral(config, datapackage_dir, techmap = {
                         "type": techmap[tech],
                         "carrier": entry["carrier"],
                         "marginal_cost": (
-                            float(carrier.at[(entry["carrier"], "cost"),
-                                             "value"])
+                            float(
+                                carrier.at[(entry["carrier"], "cost"), "value"]
+                            )
                             / float(entry["efficiency"])
                         ),
                         "bus": heat_bus,
                         "output_parameters": json.dumps(
                             {
-                                "emission_factor": float(emission.at[
-                                    (entry["carrier"], "emission-factor"),
-                                    "value"
-                                ]) / float(entry["efficiency"])
+                                "emission_factor": float(
+                                    emission.at[
+                                        (entry["carrier"], "emission-factor"),
+                                        "value",
+                                    ]
+                                )
+                                / float(entry["efficiency"])
                             }
                         ),
                         "capacity_potential": "Infinity",
@@ -231,11 +253,10 @@ def decentral(config, datapackage_dir, techmap = {
                         "type": "storage",
                         "capacity_potential": "Infinity",
                         # rounttrip -> to in / out efficiency
-                        "efficiency": float(entry["efficiency"])**0.5,
+                        "efficiency": float(entry["efficiency"]) ** 0.5,
                         "capacity_ratio": entry["capacity_ratio"],
                     }
                 )
-
 
     elements = pd.DataFrame.from_dict(elements, orient="index")
 
@@ -243,17 +264,20 @@ def decentral(config, datapackage_dir, techmap = {
         building.write_elements(
             type + ".csv",
             elements.loc[elements["type"] == type].dropna(how="all", axis=1),
-            directory=os.path.join(datapackage_dir, 'data', 'elements')
+            directory=os.path.join(datapackage_dir, "data", "elements"),
         )
 
 
-def central(config, datapackage_dir,
-            techmap={
-                "extraction": "extraction",
-                "boiler_central": "dispatchable",
-                "hotwatertank_central": "storage",
-                "heatpump_central": "conversion"
-    }):
+def central(
+    config,
+    datapackage_dir,
+    techmap={
+        "extraction": "extraction",
+        "boiler_central": "dispatchable",
+        "hotwatertank_central": "storage",
+        "heatpump_central": "conversion",
+    },
+):
     """
     """
 
@@ -274,18 +298,18 @@ def central(config, datapackage_dir,
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[config["temporal"]["scenario_year"]].to_dict()
-
+    technologies = technologies.loc[
+        config["temporal"]["scenario_year"]
+    ].to_dict()
 
     carrier = pd.DataFrame(
         technology_cost.get_resource("carrier").read(keyed=True)
-    ).set_index(['carrier', 'parameter'])
+    ).set_index(["carrier", "parameter"])
 
     # maybe we should prepare emission factors for scenario year...
     emission = carrier[carrier.year == 2015]  # 2015 as emission not change
 
-    carrier = carrier[carrier.year ==
-                      config["temporal"]["scenario_year"]]
+    carrier = carrier[carrier.year == config["temporal"]["scenario_year"]]
 
     elements = dict()
 
@@ -305,20 +329,25 @@ def central(config, datapackage_dir,
                         "carrier": entry["carrier"],
                         "fuel_bus": "GL-" + entry["carrier"],
                         "carrier_cost": carrier.at[
-                            (entry["carrier"], "cost"), "value"],
+                            (entry["carrier"], "cost"), "value"
+                        ],
                         "electricity_bus": "DE-electricity",
                         "heat_bus": heat_bus,
                         "thermal_efficiency": entry["thermal_efficiency"],
                         "input_parameters": json.dumps(
                             {
-                                "emission_factor": float(emission.at[
-                                    (entry["carrier"], "emission-factor"),
-                                    "value"
-                                ])
+                                "emission_factor": float(
+                                    emission.at[
+                                        (entry["carrier"], "emission-factor"),
+                                        "value",
+                                    ]
+                                )
                             }
                         ),
                         "electric_efficiency": entry["electrical_efficiency"],
-                        "condensing_efficiency": entry["condensing_efficiency"],
+                        "condensing_efficiency": entry[
+                            "condensing_efficiency"
+                        ],
                         "capacity_potential": "Infinity",
                         "tech": tech,
                         "capacity_cost": annuity(
@@ -336,17 +365,20 @@ def central(config, datapackage_dir,
                         "type": techmap[tech],
                         "fuel_bus": "GL-" + entry["carrier"],
                         "carrier": entry["carrier"],
-                        "fuel_cost": carrier.at[(entry["carrier"], "cost"),
-                                                "value"],
+                        "fuel_cost": carrier.at[
+                            (entry["carrier"], "cost"), "value"
+                        ],
                         "electricity_bus": b + "-electricity",
                         "heat_bus": heat_bus,
                         "thermal_efficiency": entry["thermal_efficiency"],
                         "input_parameters": json.dumps(
                             {
-                                "emission_factor": float(emission.at[
-                                    (entry["carrier"], "emission-factor"),
-                                    "value"
-                                ])
+                                "emission_factor": float(
+                                    emission.at[
+                                        (entry["carrier"], "emission-factor"),
+                                        "value",
+                                    ]
+                                )
                             }
                         ),
                         "electric_efficiency": entry["electrical_efficiency"],
@@ -357,7 +389,7 @@ def central(config, datapackage_dir,
                             float(entry["lifetime"]),
                             wacc,
                         )
-                        * 1000, # €/kW -> €/MW
+                        * 1000,  # €/kW -> €/MW
                     }
                 )
 
@@ -367,17 +399,21 @@ def central(config, datapackage_dir,
                         "type": techmap[tech],
                         "carrier": entry["carrier"],
                         "marginal_cost": (
-                            float(carrier.at[(entry["carrier"], "cost"),
-                                             "value"])
+                            float(
+                                carrier.at[(entry["carrier"], "cost"), "value"]
+                            )
                             / float(entry["efficiency"])
                         ),
                         "bus": heat_bus,
                         "output_parameters": json.dumps(
                             {
-                                "emission_factor": float(emission.at[
-                                    (entry["carrier"], "emission-factor"),
-                                    "value"
-                                ]) / float(entry["efficiency"])
+                                "emission_factor": float(
+                                    emission.at[
+                                        (entry["carrier"], "emission-factor"),
+                                        "value",
+                                    ]
+                                )
+                                / float(entry["efficiency"])
                             }
                         ),
                         "capacity_potential": "Infinity",
@@ -424,11 +460,10 @@ def central(config, datapackage_dir,
                         "type": "storage",
                         "capacity_potential": "Infinity",
                         # rounttrip -> to in / out efficiency
-                        "efficiency": float(entry["efficiency"])**0.5,
+                        "efficiency": float(entry["efficiency"]) ** 0.5,
                         "capacity_ratio": entry["capacity_ratio"],
                     }
                 )
-
 
     elements = pd.DataFrame.from_dict(elements, orient="index")
 
@@ -436,5 +471,5 @@ def central(config, datapackage_dir,
         building.write_elements(
             type + ".csv",
             elements.loc[elements["type"] == type].dropna(how="all", axis=1),
-            directory=os.path.join(datapackage_dir, "data", "elements")
+            directory=os.path.join(datapackage_dir, "data", "elements"),
         )

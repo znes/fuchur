@@ -3,8 +3,8 @@ Module that contains the command line app.
 
 Why does this file exist, and why not put this in __main__?
 
-  You might be tempted to import things from __main__ later, but that will cause
-  problems: the code will get executed twice:
+  You might be tempted to import things from __main__ later, but that will
+  cause problems: the code will get executed twice:
 
   - When you run `python -mfuchur` python will execute
     ``__main__.py`` as a script. That means there won't be any
@@ -16,19 +16,21 @@ Why does this file exist, and why not put this in __main__?
 """
 import os
 
-import click
 from oemof.tabular import datapackage
+import click
 
-from fuchur.scripts import bus, electricity, grid, capacity_factors, heat
-from fuchur.scripts import compute as _compute
-
+from fuchur.scripts import bus, capacity_factors, electricity, grid, heat
 import fuchur
+import fuchur.scripts.compute
+
 
 def _download_rawdata():
     datapackage.building.download_data(
         "sftp://5.35.252.104/home/rutherford/fuchur-raw-data.zip",
-        username="rutherford", directory=fuchur.__RAW_DATA_PATH__,
-        unzip_file="fuchur-raw-data/")
+        username="rutherford",
+        directory=fuchur.__RAW_DATA_PATH__,
+        unzip_file="fuchur-raw-data/",
+    )
 
 
 def _construct(config, ctx):
@@ -39,20 +41,20 @@ def _construct(config, ctx):
     """
 
     datapackage.processing.clean(
-        path=ctx.obj["datapackage_dir"],
-        directories=["data", "resources"]
+        path=ctx.obj["datapackage_dir"], directories=["data", "resources"]
     )
 
     datapackage.building.initialize(
-        config=config,
-        directory=ctx.obj["datapackage_dir"])
+        config=config, directory=ctx.obj["datapackage_dir"]
+    )
 
-    bus.add(config['buses'], ctx.obj["datapackage_dir"])
+    bus.add(config["buses"], ctx.obj["datapackage_dir"])
 
-    grid.add(config['buses'], ctx.obj["datapackage_dir"])
+    grid.add(config["buses"], ctx.obj["datapackage_dir"])
 
-    electricity.load(config['buses'], config['temporal'],
-                    ctx.obj["datapackage_dir"])
+    electricity.load(
+        config["buses"], config["temporal"], ctx.obj["datapackage_dir"]
+    )
 
     electricity.generation(config, ctx.obj["datapackage_dir"])
 
@@ -64,8 +66,10 @@ def _construct(config, ctx):
 
     capacity_factors.wind(config, ctx.obj["datapackage_dir"])
 
-    if config["buses"]["heat"]["decentral"] or \
-    config["buses"]["heat"]["central"]:
+    if (
+        config["buses"]["heat"]["decentral"]
+        or config["buses"]["heat"]["central"]
+    ):
         heat.load(config, ctx.obj["datapackage_dir"])
 
     if config["buses"]["heat"]["decentral"]:
@@ -94,7 +98,7 @@ def _construct(config, ctx):
             "from_to_bus": ["link", "conversion", "line"],
             "chp": ["backpressure", "extraction"],
         },
-        path=ctx.obj["datapackage_dir"]
+        path=ctx.obj["datapackage_dir"],
     )
 
 
@@ -114,17 +118,13 @@ def _construct(config, ctx):
     "--temporal-resolution",
     default=1,
     help="Temporal resolution used for calculation.",
-    )
+)
 @click.option(
-    "--emission-limit",
-    default=50e6,
-    help="Limit for CO2 emission in tons",
-    )
+    "--emission-limit", default=50e6, help="Limit for CO2 emission in tons"
+)
 @click.option(
-    "--safe",
-    default=True,
-    help="Protect results from being overwritten.",
-    )
+    "--safe", default=True, help="Protect results from being overwritten."
+)
 @click.pass_context
 def cli(ctx, **kwargs):
     ctx.obj = kwargs
@@ -141,12 +141,14 @@ def construct(ctx, config):
 @cli.command()
 @click.pass_context
 def compute(ctx):
-    _compute.compute(ctx)
+    fuchur.scripts.compute.compute(ctx)
+
 
 @cli.command()
 @click.pass_context
 def download(ctx):
     _download_rawdata(ctx)
+
 
 def main():
     cli(obj={})
