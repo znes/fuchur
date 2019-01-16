@@ -73,7 +73,7 @@ install:
     fi
     set +x
 script:
-  - tox -v
+  - travis_wait tox -v
 after_failure:
   - more .tox/log/* | cat
   - more .tox/*/log/* | cat
