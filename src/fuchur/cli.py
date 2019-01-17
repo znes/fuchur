@@ -19,7 +19,8 @@ import os
 from oemof.tabular import datapackage
 import click
 
-from fuchur.scripts import bus, capacity_factors, electricity, grid, heat
+from fuchur.scripts import (bus, capacity_factors, electricity, grid, heat,
+                            biomass)
 import fuchur
 import fuchur.scripts.compute
 
@@ -49,6 +50,8 @@ def _construct(config, ctx):
     )
 
     bus.add(config["buses"], ctx.obj["datapackage_dir"])
+
+    biomass.add(config["buses"], ctx.obj["datapackage_dir"])
 
     grid.add(config["buses"], ctx.obj["datapackage_dir"])
 

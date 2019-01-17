@@ -34,7 +34,6 @@ electricity = [
     "CZ",
     "DE",
     "DK",
-    "FI",
     "FR",
     "NO",
     "PL",
@@ -42,6 +41,16 @@ electricity = [
 ]
 
 biomass = [
+  "AT",
+  "BE",
+  "CH",
+  "CZ",
+  "DE",
+  "DK",
+  "FR",
+  "NO",
+  "PL",
+  "SE"
 ]
 
 [buses.heat]

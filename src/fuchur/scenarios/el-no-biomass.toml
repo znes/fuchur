@@ -3,7 +3,7 @@
 
 title = "Fuchur build config for scenario 1"
 description = "Electricity sector for DE and DK."
-name = "base-electricity"
+name = "el-no-biomass"
 
 [owner]
 name = "ZNES"
@@ -34,7 +34,6 @@ electricity = [
     "CZ",
     "DE",
     "DK",
-    "FI",
     "FR",
     "NO",
     "PL",
@@ -42,17 +41,6 @@ electricity = [
 ]
 
 biomass = [
-  "AT",
-  "BE",
-  "CH",
-  "CZ",
-  "DE",
-  "DK",
-  "FI",
-  "FR",
-  "NO",
-  "PL",
-  "SE"
 ]
 
 [buses.heat]
@@ -70,7 +58,6 @@ investment = [
   "ocgt",
   "ccgt",
   "acaes",
-  "biomass",
   "lithium_battery",
   "coal"
 ]

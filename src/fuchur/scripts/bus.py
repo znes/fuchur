@@ -4,10 +4,9 @@ This script constructs a pandas.Series `buses` with hub-names as index and
 polygons of these buses as values. It uses the NUTS shapefile.
 
 """
-import json
+
 import os
 
-from datapackage import Package
 from oemof.tabular.datapackage import building
 from oemof.tabular.tools import geometry
 import pandas as pd
@@ -52,49 +51,6 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
             "balanced": True,
         }
 
-    # Add carrier buses
-    commodities = {}
-
-    bio_potential = (
-        Package(
-            "https://raw.githubusercontent.com/ZNES-datapackages/"
-            "technology-potential/master/datapackage.json"
-        )
-        .get_resource("carrier")
-        .read(keyed=True)
-    )
-    bio_potential = pd.DataFrame(bio_potential).set_index(
-        ["country", "carrier"]
-    )
-    bio_potential.rename(index={"UK": "GB"}, inplace=True)
-
-    bio_potential = bio_potential.loc[
-        bio_potential["source"] == "hotmaps"
-    ].to_dict()
-
-    if buses.get("biomass"):
-        for b in buses["biomass"]:
-            bus_name = b + "-biomass-bus"
-            commodity_name = b + "-biomass-commodity"
-
-            commodities[commodity_name] = {
-                "type": "dispatchable",
-                "carrier": "biomass",
-                "bus": bus_name,
-                "capacity": float(
-                    bio_potential["value"].get((b, "biomass"), 0)
-                )
-                * 1e6,  # TWh -> MWh
-                "output_parameters": json.dumps({"summed_max": 1}),
-            }
-
-            bus_elements[bus_name] = {
-                "type": "bus",
-                "carrier": "biomass",
-                "geometry": None,
-                "balanced": True,
-            }
-
     # Add heat buses per  sub_bus and region (r)
     for sub_bus, regions in buses["heat"].items():
         for region in regions:
@@ -104,12 +60,6 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
                 "geometry": None,
                 "balanced": True,
             }
-
-    building.write_elements(
-        "commodity.csv",
-        pd.DataFrame.from_dict(commodities, orient="index"),
-        os.path.join(datapackage_dir, "data/elements"),
-    )
 
     building.write_elements(
         "bus.csv",
