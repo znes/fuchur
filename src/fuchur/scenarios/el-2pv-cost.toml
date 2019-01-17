@@ -1,0 +1,76 @@
+# Toml document to used for building model input
+# datapackages
+
+title = "Fuchur build config for scenario 1"
+description = "Electricity sector for DE and DK."
+name = "el-2pv-cost"
+
+[owner]
+name = "ZNES"
+
+[cost]
+wacc = 0.07
+
+[cost.factor]
+pv = 2
+lithium_battery = 2
+acaes = 1
+
+[temporal]
+scenario_year = 2050
+weather_year = 2012
+demand_year = 2012
+
+[potential]
+renewables = "LIMES-EU"
+biomass = "hotmaps"
+
+[buses]
+
+electricity = [
+    "AT",
+    "BE",
+    "CH",
+    "CZ",
+    "DE",
+    "DK",
+    "FI",
+    "FR",
+    "NO",
+    "PL",
+    "SE"
+]
+
+biomass = [
+  "AT",
+  "BE",
+  "CH",
+  "CZ",
+  "DE",
+  "DK",
+  "FI",
+  "FR",
+  "NO",
+  "PL",
+  "SE"
+]
+
+[buses.heat]
+
+decentral = []
+
+central = []
+
+[technologies]
+
+investment = [
+  "wind_onshore",
+  "wind_offshore",
+  "pv",
+  "ocgt",
+  "ccgt",
+  "acaes",
+  "biomass",
+  "lithium_battery",
+  "coal"
+]
