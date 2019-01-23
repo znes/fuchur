@@ -67,6 +67,7 @@ setup(
     install_requires=[
         "click",
         "oemof.tabular==0.0.1.dev0",
+        "setuptools",
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={
