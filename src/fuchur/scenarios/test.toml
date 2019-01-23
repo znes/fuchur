@@ -43,8 +43,12 @@ biomass = [
 
 [buses.heat]
 
-decentral = []
-central = []
+decentral = [
+  "DE"
+]
+central = [
+  "DE"
+]
 
 [technologies]
 
