@@ -57,6 +57,11 @@ def load(
         directory=os.path.join(datapackage_dir, "data/elements"),
     )
 
+
+def load_profile(buses, temporal, datapackage_dir,
+                 raw_data_path=fuchur.__RAW_DATA_PATH__):
+    """
+    """
     filepath = os.path.join(raw_data_path, "time_series_60min_singleindex.csv")
     if os.path.exists(filepath):
         raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
@@ -87,7 +92,7 @@ def load(
 
     sequences_df = pd.DataFrame(index=load_profile.index)
     elements = building.read_elements(
-        "load.csv", directory=os.path.join(datapackage_dir, "data/elements")
+        "load.csv", directory=os.path.join(datapackage_dir, "data", "elements")
     )
 
     for c in countries:
