@@ -133,11 +133,20 @@ def cli(ctx, **kwargs):
     ctx.obj = kwargs
 
 
+# TODO: Document specifying built-in scenarios by `name`.
 @cli.command()
 @click.argument("config", type=str, default="config.json")
 @click.pass_context
 def construct(ctx, config):
-    config = datapackage.building.read_build_config(config)
+    if config in fuchur.scenarios:
+        config = fuchur.scenarios[config]
+    else:
+        fuchur.scenarios[config] = datapackage.building.read_build_config(
+            config
+        )
+        if "name" in fuchur.scenarios[config]:
+            name = fuchur.scenarios[config]["name"]
+            fuchur.scenarios[name] = fuchur.scenarios[config]
     _construct(config, ctx)
 
 
