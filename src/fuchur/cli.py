@@ -14,6 +14,7 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+import copy
 import os
 
 from oemof.tabular import datapackage
@@ -23,6 +24,32 @@ from fuchur.scripts import (bus, capacity_factors, electricity, grid, heat,
                             biomass)
 import fuchur
 import fuchur.scripts.compute
+
+
+# TODO: This definitely needs docstrings.
+class Scenario(dict):
+    @classmethod
+    def from_path(cls, path):
+        fuchur.scenarios[config] = cls(
+            datapackage.building.read_build_config(config)
+        )
+        if "name" in fuchur.scenarios[config]:
+            name = fuchur.scenarios[config]["name"]
+            fuchur.scenarios[name] = fuchur.scenarios[config]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "parents" in self:
+            for parent in self["parents"]:
+                if parent in fuchur.scenarios:
+                    scenario = copy.deepcopy(fuchur.scenarios[parent])
+                else:
+                    scenario = copy.deepcopy(type(self).from_path(parent))
+                if "name" in scenario:
+                    del scenario["name"]
+                if "parents" in scenario:
+                    del scenario["parents"]
+                self.update(scenario)
 
 
 def _download_rawdata():
@@ -141,12 +168,7 @@ def construct(ctx, config):
     if config in fuchur.scenarios:
         config = fuchur.scenarios[config]
     else:
-        fuchur.scenarios[config] = datapackage.building.read_build_config(
-            config
-        )
-        if "name" in fuchur.scenarios[config]:
-            name = fuchur.scenarios[config]["name"]
-            fuchur.scenarios[name] = fuchur.scenarios[config]
+        config = Scenario.from_path(config)
     _construct(config, ctx)
 
 

@@ -1,7 +1,8 @@
 from click.testing import CliRunner
+import copy
 import os
 
-from fuchur.cli import cli
+from fuchur.cli import Scenario, cli
 import fuchur
 
 
@@ -32,3 +33,11 @@ def test_builtin_scenario_construction():
             "\nNow that the working directory contains something, you can"
             "\nstart correcting the test."
         )
+
+
+def test_scenario_class():
+    scenario = Scenario({"name": "child", "parents": ["test"]})
+    expected = copy.deepcopy(fuchur.scenarios["test"])
+    expected["name"] = "child"
+    expected["parents"] = ["test"]
+    assert scenario == expected
