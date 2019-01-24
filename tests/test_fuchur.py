@@ -1,7 +1,9 @@
-
 from click.testing import CliRunner
+import copy
+import os
 
-from fuchur.cli import cli
+from fuchur.cli import Scenario, cli
+import fuchur
 
 
 def test_main():
@@ -11,3 +13,31 @@ def test_main():
 
     assert result.output == help.output
     assert result.exit_code == 0
+
+
+def test_builtin_scenario_availability():
+    assert fuchur.scenarios.keys() == set(
+        ["el-2pv-cost", "el-base", "el-no-biomass", "scenario2", "test"]
+    )
+
+
+def test_builtin_scenario_construction():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["construct", "test"])
+        assert result.exit_code == 0
+        assert os.listdir(os.curdir) == [], (
+            "\nIf you see this message, a test started failing that was"
+            "\nasserting the wrong fact anyway. The working directory should"
+            "\nnot be empty after running `fuchur construct test`.\n"
+            "\nNow that the working directory contains something, you can"
+            "\nstart correcting the test."
+        )
+
+
+def test_scenario_class():
+    scenario = Scenario({"name": "child", "parents": ["test"]})
+    expected = copy.deepcopy(fuchur.scenarios["test"])
+    expected["name"] = "child"
+    expected["parents"] = ["test"]
+    assert scenario == expected
