@@ -59,7 +59,8 @@ def compute(ctx):
 
     m = Model(es)
 
-    constraints.emission_limit(m, limit=emission_limit)
+    if emission_limit is not None:
+        constraints.emission_limit(m, limit=emission_limit)
 
     m.receive_duals()
 

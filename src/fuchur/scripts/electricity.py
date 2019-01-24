@@ -560,6 +560,7 @@ def excess(config, datapackage_dir):
         "bus.csv", directory=os.path.join(datapackage_dir, "data/elements")
     )
     buses.index.name = "bus"
+    buses = buses.loc[buses['carrier'] == 'electricity']
 
     elements = pd.DataFrame(buses.index)
     elements["type"] = "excess"
@@ -572,4 +573,27 @@ def excess(config, datapackage_dir):
         "excess.csv",
         elements,
         directory=os.path.join(datapackage_dir, "data/elements"),
+    )
+
+def shortage(config, datapackage_dir):
+    """
+    """
+    buses = building.read_elements(
+        "bus.csv", directory=os.path.join(datapackage_dir, "data/elements")
+    )
+    buses = buses.loc[buses['carrier'] == 'electricity']
+    buses.index.name = "bus"
+
+    elements = pd.DataFrame(buses.index)
+    elements["capacity"] = 10e10
+    elements["type"] = "shortage"
+    elements["name"] = elements["bus"] + "-shortage"
+    elements["marginal_cost"] = 10e3
+
+    elements.set_index("name", inplace=True)
+
+    building.write_elements(
+        "shortage.csv",
+        elements,
+        directory=os.path.join(datapackage_dir, "data" , "elements"),
     )

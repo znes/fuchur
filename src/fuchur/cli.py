@@ -21,7 +21,7 @@ from oemof.tabular import datapackage
 import click
 
 from fuchur.scripts import (bus, capacity_factors, electricity, grid, heat,
-                            biomass)
+                            biomass, tyndp)
 import fuchur
 import fuchur.scripts.compute
 
@@ -30,13 +30,13 @@ import fuchur.scripts.compute
 class Scenario(dict):
     @classmethod
     def from_path(cls, path):
-        fuchur.scenarios[config] = cls(
-            datapackage.building.read_build_config(config)
+        fuchur.scenarios[path] = cls(
+            datapackage.building.read_build_config(path)
         )
-        if "name" in fuchur.scenarios[config]:
-            name = fuchur.scenarios[config]["name"]
-            fuchur.scenarios[name] = fuchur.scenarios[config]
-
+        if "name" in fuchur.scenarios[path]:
+            name = fuchur.scenarios[path]["name"]
+            fuchur.scenarios[name] = fuchur.scenarios[path]
+        return fuchur.scenarios[path]
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "parents" in self:
@@ -60,6 +60,63 @@ def _download_rawdata():
         unzip_file="fuchur-raw-data/",
     )
 
+def _tyndp(config,ctx):
+    datapackage.processing.clean(
+        path=ctx.obj["datapackage_dir"], directories=["data", "resources"]
+    )
+
+    datapackage.building.initialize(
+        config=config, directory=ctx.obj["datapackage_dir"]
+    )
+
+    bus.add(config["buses"], ctx.obj["datapackage_dir"])
+
+    biomass.add(config["buses"], ctx.obj["datapackage_dir"])
+
+    tyndp.grid(config["buses"], ctx.obj["datapackage_dir"])
+
+    tyndp.load(
+        config["buses"], config['tyndp'], ctx.obj["datapackage_dir"])
+
+    electricity.load_profile(
+        config["buses"], config["temporal"], ctx.obj["datapackage_dir"])
+
+    tyndp.generation(
+        config["buses"], config['tyndp'], config['temporal'], ctx.obj["datapackage_dir"])
+
+    electricity.excess(config, ctx.obj["datapackage_dir"])
+
+    electricity.shortage(config, ctx.obj["datapackage_dir"])
+
+    electricity.hydro_generation(config, ctx.obj["datapackage_dir"])
+
+    capacity_factors.pv(config, ctx.obj["datapackage_dir"])
+
+    capacity_factors.wind(config, ctx.obj["datapackage_dir"])
+
+    datapackage.building.infer_metadata(
+        package_name=config["name"],
+        foreign_keys={
+            "bus": [
+                "volatile",
+                "dispatchable",
+                "storage",
+                "heat_storage",
+                "load",
+                "ror",
+                "reservoir",
+                "phs",
+                "excess",
+                "shortage",
+                "boiler",
+                "commodity",
+            ],
+            "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
+            "from_to_bus": ["link", "conversion", "line"],
+            "chp": ["backpressure", "extraction"],
+        },
+        path=ctx.obj["datapackage_dir"],
+    )
 
 def _construct(config, ctx):
     """
@@ -121,6 +178,7 @@ def _construct(config, ctx):
                 "reservoir",
                 "phs",
                 "excess",
+                "shortage",
                 "boiler",
                 "commodity",
             ],
@@ -150,7 +208,7 @@ def _construct(config, ctx):
     help="Temporal resolution used for calculation.",
 )
 @click.option(
-    "--emission-limit", default=50e6, help="Limit for CO2 emission in tons"
+    "--emission-limit", default=None, help="Limit for CO2 emission in tons"
 )
 @click.option(
     "--safe", default=True, help="Protect results from being overwritten."
@@ -170,6 +228,17 @@ def construct(ctx, config):
     else:
         config = Scenario.from_path(config)
     _construct(config, ctx)
+
+@cli.command()
+@click.argument("config", type=str, default="config.json")
+@click.pass_context
+def construct_tyndp(ctx, config):
+    if config in fuchur.scenarios:
+        config = fuchur.scenarios[config]
+    else:
+        config = Scenario.from_path(config)
+    _tyndp(config, ctx)
+
 
 
 @cli.command()
