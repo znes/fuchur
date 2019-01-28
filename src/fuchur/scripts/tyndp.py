@@ -159,83 +159,84 @@ def generation(buses, tyndp, temporal, datapackage_dir):
     elements = {}
 
     for b in buses["electricity"]:
-        for carrier in x.columns:
+        if b != 'DE':
+            for carrier in x.columns:
 
-            element = {}
+                element = {}
 
-            if carrier in ['wind', 'solar']:
-                if "wind" in carrier:
-                    profile = b + "-wind-on-profile"
-                    tech = 'wind-on'
-                elif "solar" in carrier:
-                    profile = b + "-pv-profile"
-                    tech = 'pv'
+                if carrier in ['wind', 'solar']:
+                    if "wind" in carrier:
+                        profile = b + "-wind-on-profile"
+                        tech = 'wind-on'
+                    elif "solar" in carrier:
+                        profile = b + "-pv-profile"
+                        tech = 'pv'
 
-                elements[b + "-" + tech] = element
-                e = {
-                    "bus": b + "-electricity",
-                    "tech": tech,
-                    "carrier": carrier,
-                    "capacity": x.at[b, carrier],
-                    "type": "volatile",
-                    "profile": profile,
-                }
+                    elements[b + "-" + tech] = element
+                    e = {
+                        "bus": b + "-electricity",
+                        "tech": tech,
+                        "carrier": carrier,
+                        "capacity": x.at[b, carrier],
+                        "type": "volatile",
+                        "profile": profile,
+                    }
 
-                element.update(e)
+                    element.update(e)
 
-            elif carrier in ['gas', 'coal', 'lignite', 'oil', 'uranium']:
-                elements[b + "-" + carrier] = element
-                marginal_cost = float(
-                    carriers.at[(temporal['scenario_year'], carrier, 'cost'), 'value']
-                    + carriers.at[(2014, carrier, 'emission-factor'), 'value']
-                    * carriers.at[(temporal['scenario_year'], 'co2', 'cost'), 'value']
-                ) / efficiencies[carrier]
+                elif carrier in ['gas', 'coal', 'lignite', 'oil', 'uranium']:
+                    elements[b + "-" + carrier] = element
+                    marginal_cost = float(
+                        carriers.at[(temporal['scenario_year'], carrier, 'cost'), 'value']
+                        + carriers.at[(2014, carrier, 'emission-factor'), 'value']
+                        * carriers.at[(temporal['scenario_year'], 'co2', 'cost'), 'value']
+                    ) / efficiencies[carrier]
 
-                element.update({
-                    "carrier": carrier,
-                    "capacity": x.at[b, carrier],
-                    "bus": b + "-electricity",
-                    "type": "dispatchable",
-                    "marginal_cost": marginal_cost,
-                    "output_parameters": json.dumps(
-                        {"max": max[carrier]}
-                    ),
-                    "tech": carrier,
-                }
-            )
-
-            elif carrier == 'others-non-res':
-                elements[b + "-" + carrier] = element
-
-                element.update({
-                    "carrier": carrier,
-                    "capacity": x.at[b, carrier],
-                    "bus": b + "-electricity",
-                    "type": "dispatchable",
-                    "marginal_cost": 0,
-                    "tech": carrier,
-                    "output_parameters": json.dumps(
-                        {"summed_max": 2000}
-                    )
-                }
-            )
-
-            elif carrier == "biomass":
-                elements[b + "-" + carrier] = element
-
-                element.update({
-                    "carrier": carrier,
-                    "capacity": x.at[b, carrier],
-                    "to_bus": b + "-electricity",
-                    "efficiency": efficiencies[carrier],
-                    "from_bus": b + "-biomass-bus",
-                    "type": "conversion",
-                    "carrier_cost": float(
-                        carriers.at[(2030, carrier, 'cost'), 'value']
-                    ),
-                    "tech": carrier,
+                    element.update({
+                        "carrier": carrier,
+                        "capacity": x.at[b, carrier],
+                        "bus": b + "-electricity",
+                        "type": "dispatchable",
+                        "marginal_cost": marginal_cost,
+                        "output_parameters": json.dumps(
+                            {"max": max[carrier]}
+                        ),
+                        "tech": carrier,
                     }
                 )
+
+                elif carrier == 'others-non-res':
+                    elements[b + "-" + carrier] = element
+
+                    element.update({
+                        "carrier": carrier,
+                        "capacity": x.at[b, carrier],
+                        "bus": b + "-electricity",
+                        "type": "dispatchable",
+                        "marginal_cost": 0,
+                        "tech": carrier,
+                        "output_parameters": json.dumps(
+                            {"summed_max": 2000}
+                        )
+                    }
+                )
+
+                elif carrier == "biomass":
+                    elements[b + "-" + carrier] = element
+
+                    element.update({
+                        "carrier": carrier,
+                        "capacity": x.at[b, carrier],
+                        "to_bus": b + "-electricity",
+                        "efficiency": efficiencies[carrier],
+                        "from_bus": b + "-biomass-bus",
+                        "type": "conversion",
+                        "carrier_cost": float(
+                            carriers.at[(2030, carrier, 'cost'), 'value']
+                        ),
+                        "tech": carrier,
+                        }
+                    )
 
     df = pd.DataFrame.from_dict(elements, orient="index")
     df = df[df.capacity != 0]
