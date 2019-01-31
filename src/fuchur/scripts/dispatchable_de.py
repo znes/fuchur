@@ -45,7 +45,7 @@ nep = pd.read_excel(building.download_data(
     , encoding='utf-8')
 
 pp = nep.loc[nep["Nettonennleistung B2030 [MW]"] != 0]["BNetzA-ID"]
-pp = [i for i in pp.values if  not pd.isnull(i)]
+pp = list(set([i for i in pp.values if  not pd.isnull(i)]))
 df = sq.loc[pp]
 
 cond1 = df['country_code'] == 'DE'
@@ -87,8 +87,9 @@ index = df['carrier'].isin(['gas', 'coal', 'lignite'])
 
 bins = 4
 df.loc[index, 'bins'] = df[index].groupby(['carrier', 'tech'])['capacity_net_bnetza']\
-    .apply(lambda i: pd.qcut(i, bins, labels=range(1, bins+1)))
-df['bins'].fillna(1, inplace=True)
+    .apply(lambda i: pd.qcut(i, bins, labels=False, duplicates='drop'))
+
+df['bins'].fillna(0, inplace=True)
 
 s = df.groupby(['country_code', 'carrier', 'tech', 'bins']).\
     agg({'capacity_net_bnetza': sum, 'efficiency_estimate': np.mean})
