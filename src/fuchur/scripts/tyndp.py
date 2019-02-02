@@ -159,7 +159,6 @@ def generation(buses, tyndp, temporal, datapackage_dir):
     elements = {}
 
     for b in buses["electricity"]:
-        if b != 'DE':
             for carrier in x.columns:
 
                 element = {}
@@ -185,41 +184,43 @@ def generation(buses, tyndp, temporal, datapackage_dir):
                     element.update(e)
 
                 elif carrier in ['gas', 'coal', 'lignite', 'oil', 'uranium']:
-                    elements[b + "-" + carrier] = element
-                    marginal_cost = float(
-                        carriers.at[(temporal['scenario_year'], carrier, 'cost'), 'value']
-                        + carriers.at[(2014, carrier, 'emission-factor'), 'value']
-                        * carriers.at[(temporal['scenario_year'], 'co2', 'cost'), 'value']
-                    ) / efficiencies[carrier]
+                    if b != 'DE':
+                        elements[b + "-" + carrier] = element
+                        marginal_cost = float(
+                            carriers.at[(temporal['scenario_year'], carrier, 'cost'), 'value']
+                            + carriers.at[(2014, carrier, 'emission-factor'), 'value']
+                            * carriers.at[(temporal['scenario_year'], 'co2', 'cost'), 'value']
+                        ) / efficiencies[carrier]
 
-                    element.update({
-                        "carrier": carrier,
-                        "capacity": x.at[b, carrier],
-                        "bus": b + "-electricity",
-                        "type": "dispatchable",
-                        "marginal_cost": marginal_cost,
-                        "output_parameters": json.dumps(
-                            {"max": max[carrier]}
-                        ),
-                        "tech": carrier,
-                    }
-                )
+                        element.update({
+                            "carrier": carrier,
+                            "capacity": x.at[b, carrier],
+                            "bus": b + "-electricity",
+                            "type": "dispatchable",
+                            "marginal_cost": marginal_cost,
+                            "output_parameters": json.dumps(
+                                {"max": max[carrier]}
+                            ),
+                            "tech": carrier,
+                        }
+                    )
 
                 elif carrier == 'others-non-res':
-                    elements[b + "-" + carrier] = element
+                    if b != 'DE':
+                        elements[b + "-" + carrier] = element
 
-                    element.update({
-                        "carrier": carrier,
-                        "capacity": x.at[b, carrier],
-                        "bus": b + "-electricity",
-                        "type": "dispatchable",
-                        "marginal_cost": 0,
-                        "tech": carrier,
-                        "output_parameters": json.dumps(
-                            {"summed_max": 2000}
-                        )
-                    }
-                )
+                        element.update({
+                            "carrier": carrier,
+                            "capacity": x.at[b, carrier],
+                            "bus": b + "-electricity",
+                            "type": "dispatchable",
+                            "marginal_cost": 0,
+                            "tech": carrier,
+                            "output_parameters": json.dumps(
+                                {"summed_max": 2000}
+                            )
+                        }
+                    )
 
                 elif carrier == "biomass":
                     elements[b + "-" + carrier] = element
