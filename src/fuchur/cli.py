@@ -21,7 +21,7 @@ from oemof.tabular import datapackage
 import click
 
 from fuchur.scripts import (bus, capacity_factors, electricity, grid, heat,
-                            biomass, tyndp)
+                            biomass)
 import fuchur
 import fuchur.scripts.compute
 
@@ -80,11 +80,16 @@ def _tyndp(config,ctx):
         ctx.obj["datapackage_dir"])
 
     electricity.opsd_load_profile(
-        config["buses"]["electricity"], config["temporal"]["demand_year"],
+        config["buses"]["electricity"],
+        config["temporal"]["demand_year"],
+        config["temporal"]["scenario_year"],
         ctx.obj["datapackage_dir"])
 
-    tyndp.generation(
-        config["buses"], config['tyndp'], config['temporal'], ctx.obj["datapackage_dir"])
+    electricity.tyndp_generation(
+        set(config["buses"]["electricity"]) - set(['DE']),
+        config['tyndp']['generation'],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"])
 
     electricity.nep_2019(
         config["temporal"]["scenario_year"], ctx.obj["datapackage_dir"])

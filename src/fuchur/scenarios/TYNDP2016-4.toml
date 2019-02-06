@@ -1,0 +1,53 @@
+title = ""
+description = ""
+name = "TYNDP2016-4"
+
+[cost]
+wacc = 0.07
+
+[tyndp]
+load = "2030EU"
+generation = 'vision4'
+
+
+[temporal]
+scenario_year = 2030
+weather_year = 2012
+demand_year = 2012
+
+[potential]
+renewables = "LIMES-EU"
+biomass = "hotmaps"
+
+[buses]
+
+electricity = [
+    "AT",
+    "BE",
+    "CH",
+    "CZ",
+    "DE",
+    "DK",
+    "FR",
+    "NO",
+    "PL",
+    "SE"
+]
+
+biomass = [
+  "AT",
+  "BE",
+  "CH",
+  "CZ",
+  "DE",
+  "DK",
+  "FR",
+  "NO",
+  "PL",
+  "SE"
+]
+
+[buses.heat]
+
+decentral = []
+central = []
