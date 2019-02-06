@@ -9,15 +9,29 @@ import pandas as pd
 import fuchur
 
 
-def pv(config, datapackage_dir):
+def pv(buses, weather_year, scenario_year, datapackage_dir,
+       raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
+    Parameter
+    ---------
+    buses: array like
+        List with buses represented by iso country code
+    weather_year: integer or string
+        Year to select from raw data source
+    scenario_year: integer or string
+        Year to use for timeindex in tabular resource
+    datapackage_dir: string
+        Directory for tabular resource
+    raw_data_path: string
+        Path where raw data file `ninja_pv_europe_v1.1_merra2.csv`
+        is located
     """
     filepath = os.path.join(
-        fuchur.__RAW_DATA_PATH__, "ninja_pv_europe_v1.1_merra2.csv"
+        raw_data_path, "ninja_pv_europe_v1.1_merra2.csv"
     )
-    year = str(config["temporal"]["weather_year"])
+    year = str(weather_year)
 
-    countries = config["buses"]["electricity"]
+    countries = buses
 
     raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
     # for leap year...
@@ -34,7 +48,7 @@ def pv(config, datapackage_dir):
         sequences_df[sequence_name] = raw_data.loc[year][c].values
 
     sequences_df.index = building.timeindex(
-        year=str(config["temporal"]["scenario_year"])
+        year=str(scenario_year)
     )
     building.write_sequences(
         "volatile_profile.csv",
@@ -43,19 +57,34 @@ def pv(config, datapackage_dir):
     )
 
 
-def wind(config, datapackage_dir):
+def wind(buses, weather_year, scenario_year, datapackage_dir,
+         raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
+    Parameter
+    ---------
+    buses: array like
+        List with buses represented by iso country code
+    weather_year: integer or string
+        Year to select from raw data source
+    scenario_year: integer or string
+        Year to use for timeindex in tabular resource
+    datapackage_dir: string
+        Directory for tabular resource
+    raw_data_path: string
+        Path where raw data file `ninja_wind_europe_v1.1_current_national.csv`
+        and `ninja_wind_europe_v1.1_current_national.csv`
+        is located
     """
     off_filepath = os.path.join(
-        fuchur.__RAW_DATA_PATH__,
+        raw_data_path,
         "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
     )
 
     near_term_path = os.path.join(
-        fuchur.__RAW_DATA_PATH__, "ninja_wind_europe_v1.1_current_national.csv"
+        raw_data_path, "ninja_wind_europe_v1.1_current_national.csv"
     )
 
-    year = str(config["temporal"]["weather_year"])
+    year = str(weather_year)
 
     near_term = pd.read_csv(near_term_path, index_col=[0], parse_dates=True)
     # for lead year...
@@ -72,7 +101,7 @@ def wind(config, datapackage_dir):
 
     NorthSea = ["DE", "DK", "NO", "NL", "BE", "GB", "SE"]
 
-    for c in config["buses"]["electricity"]:
+    for c in buses:
         # add offshore profile if country exists in offshore data columns
         # and if its in NorthSea
         if [
@@ -84,7 +113,7 @@ def wind(config, datapackage_dir):
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
     sequences_df.index = building.timeindex(
-        year=str(config["temporal"]["scenario_year"])
+        year=str(scenario_year)
     )
 
     building.write_sequences(

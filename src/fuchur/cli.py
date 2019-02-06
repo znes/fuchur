@@ -73,26 +73,39 @@ def _tyndp(config,ctx):
 
     biomass.add(config["buses"], ctx.obj["datapackage_dir"])
 
-    tyndp.grid(config["buses"], ctx.obj["datapackage_dir"])
+    grid.tyndp_grid(config["buses"]["electricity"], ctx.obj["datapackage_dir"])
 
-    tyndp.load(
-        config["buses"], config['tyndp'], ctx.obj["datapackage_dir"])
+    electricity.tyndp_load(
+        config["buses"]["electricity"], config["tyndp"]["load"],
+        ctx.obj["datapackage_dir"])
 
-    electricity.load_profile(
-        config["buses"], config["temporal"], ctx.obj["datapackage_dir"])
+    electricity.opsd_load_profile(
+        config["buses"]["electricity"], config["temporal"]["demand_year"],
+        ctx.obj["datapackage_dir"])
 
     tyndp.generation(
         config["buses"], config['tyndp'], config['temporal'], ctx.obj["datapackage_dir"])
 
-    electricity.excess(config, ctx.obj["datapackage_dir"])
+    electricity.nep_2019(
+        config["temporal"]["scenario_year"], ctx.obj["datapackage_dir"])
 
-    electricity.shortage(config, ctx.obj["datapackage_dir"])
+    electricity.excess(ctx.obj["datapackage_dir"])
+
+    electricity.shortage(ctx.obj["datapackage_dir"])
 
     electricity.hydro_generation(config, ctx.obj["datapackage_dir"])
 
-    capacity_factors.pv(config, ctx.obj["datapackage_dir"])
+    capacity_factors.pv(
+        config["buses"]["electricity"],
+        config["temporal"]["weather_year"],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"])
 
-    capacity_factors.wind(config, ctx.obj["datapackage_dir"])
+    capacity_factors.wind(
+        config["buses"]["electricity"],
+        config["temporal"]["weather_year"],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"])
 
     datapackage.building.infer_metadata(
         package_name=config["name"],
@@ -137,21 +150,33 @@ def _construct(config, ctx):
 
     biomass.add(config["buses"], ctx.obj["datapackage_dir"])
 
-    grid.add(config["buses"], ctx.obj["datapackage_dir"])
+    grid.ehighway_grid(
+        config["buses"]["electricity"], ctx.obj["datapackage_dir"])
 
-    electricity.load(
-        config["buses"], config["temporal"], ctx.obj["datapackage_dir"]
+    electricity.ehighway_load(
+        config["buses"]["electricity"],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"],
+        "100% RES"
     )
 
     electricity.generation(config, ctx.obj["datapackage_dir"])
 
-    electricity.excess(config, ctx.obj["datapackage_dir"])
+    electricity.excess(ctx.obj["datapackage_dir"])
 
     electricity.hydro_generation(config, ctx.obj["datapackage_dir"])
 
-    capacity_factors.pv(config, ctx.obj["datapackage_dir"])
+    capacity_factors.pv(
+        config["buses"]["electricity"],
+        config["temporal"]["weather_year"],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"])
 
-    capacity_factors.wind(config, ctx.obj["datapackage_dir"])
+    capacity_factors.wind(
+        config["buses"]["electricity"],
+        config["temporal"]["weather_year"],
+        config["temporal"]["scenario_year"],
+        ctx.obj["datapackage_dir"])
 
     if (
         config["buses"]["heat"]["decentral"]

@@ -3,8 +3,36 @@ import copy
 import os
 
 from fuchur.cli import Scenario, cli
+from fuchur.scripts import electricity
 import fuchur
 
+buses = [
+    "AT",
+    "BE",
+    "BG",
+    "CH",
+    "CZ",
+    "DE",
+    "DK",
+    "ES",
+    "FI",
+    "FR",
+    "HR",
+    "HU",
+    "IE",
+    "IT",
+    "LT",
+    "LV",
+    "NL",
+    "NO",
+    "PL",
+    "PT",
+    "RO",
+    "SE",
+    "SI",
+    "SK",
+    "GB"
+]
 
 def test_main():
     runner = CliRunner()
@@ -17,7 +45,7 @@ def test_main():
 
 def test_builtin_scenario_availability():
     assert fuchur.scenarios.keys() == set(
-        ["el-2pv-cost", "el-base", "el-no-biomass", "scenario2", "test"]
+        ["el-2pv-cost", "el,-base", "el-no-biomass", "scenario2", "test"]
     )
 
 
@@ -41,3 +69,14 @@ def test_scenario_class():
     expected["name"] = "child"
     expected["parents"] = ["test"]
     assert scenario == expected
+
+def test_load():
+    for s in ["Large Scale RES", "100% RES", "Big & Market", "Fossil & Nuclear",
+        "Small & Local"]:
+        for year in [2040, 2050]:
+            electricity.ehighway_load(
+                buses, year, os.path.join("/tmp", s, str(year)), scenario=s)
+                
+    electricity.opsd_load_profile(
+        buses, 2012, os.path.join("/tmp", "100% RES", str(2050)))
+test_load()

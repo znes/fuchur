@@ -2,10 +2,12 @@
 """
 """
 import json
-import logging
 import os
 
 from datapackage import Package
+from decimal import Decimal
+import numpy as np
+
 from oemof.tabular.datapackage import building
 from oemof.tools.economics import annuity
 import pandas as pd
@@ -13,30 +15,85 @@ import pandas as pd
 import fuchur
 
 
-def load(
-    buses, temporal, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__
-):
+
+def tyndp_load(buses, scenario, datapackage_dir,
+               raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
-    # first we build the elements ---------------
+    filepath = building.download_data(
+        "https://www.entsoe.eu/Documents/TYNDP%20documents/TYNDP2018/"
+        "Scenarios%20Data%20Sets/Input%20Data.xlsx",
+        directory=raw_data_path)
+
+    df = pd.read_excel(filepath, sheet_name='Demand')
+    df['countries'] = [i[0:2] for i in df.index]  # for aggregation by country
+
+    elements = df.groupby('countries').sum()[scenario].to_frame()
+    elements.index.name = "bus"
+    elements = elements.loc[buses]
+    elements.reset_index(inplace=True)
+    elements["name"] = elements.apply(
+        lambda row: row.bus + "-electricity-load", axis=1
+    )
+    elements["profile"] = elements.apply(
+        lambda row: row.bus + "-electricity-load-profile", axis=1
+    )
+    elements["type"] = "load"
+    elements["carrier"] = "electricity"
+    elements.set_index("name", inplace=True)
+    elements.bus = [b + "-electricity" for b in elements.bus]
+    elements["amount"] = elements[scenario] * 1000   # MWh -> GWh
+
+    building.write_elements(
+        "load.csv",
+        elements,
+        directory=os.path.join(datapackage_dir, "data", "elements"),
+    )
+
+def ehighway_load(buses, year, datapackage_dir, scenario="100% RES",
+                  raw_data_path=fuchur.__RAW_DATA_PATH__):
+    """
+    Parameter
+    ---------
+    buses: array like
+        List with buses represented by iso country code
+    year: integer
+        Scenario year to select. One of: 2040, 2050
+    datapackage_dir: string
+        Directory for tabular resource
+    scenario:
+        Name of ehighway scenario to select. One of:
+        ["Large Scale RES", "100% RES", "Big & Market", "Fossil & Nuclear",
+         "Small & Local"], default: "100% RES"
+    raw_data_path: string
+        Path where raw data file `e-Highway_database_per_country-08022016.xlsx`
+        is located
+    """
     filename = "e-Highway_database_per_country-08022016.xlsx"
     filepath = os.path.join(raw_data_path, filename)
 
-    if temporal["scenario_year"] == 2050:
+    if year == 2050:
         sheet = "T40"
-    if os.path.exists(filepath):
-        df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0])
+    elif year == 2040:
+        sheet = "T39"
     else:
-        logging.info(
+        raise ValueError(
+            "Value of argument `year` must be integer 2040 or 2050!")
+
+    if os.path.exists(filepath):
+        df = pd.read_excel(filepath, sheet_name=sheet, index_col=[0],
+                           skiprows=[0,1])
+    else:
+        raise FileNotFoundError(
             "File for e-Highway loads does not exist. Did you download data?"
         )
 
-    df.set_index("Unnamed: 1", inplace=True)
-    df.drop(df.index[0:1], inplace=True)
+    df.set_index("Scenario", inplace=True)  # Scenario in same colum as ctrcode
+    df.drop(df.index[0:1], inplace=True)  # remove row with units
     df.dropna(how="all", axis=1, inplace=True)
 
-    elements = df.loc[buses["electricity"], df.loc["Scenario"] == "100% RES"]
-    elements = elements.rename(columns={"Unnamed: 3": "amount"})
+    elements = df.loc[buses, scenario].to_frame()
+    elements = elements.rename(columns={scenario: "amount"})
     elements.index.name = "bus"
     elements.reset_index(inplace=True)
     elements["name"] = elements.apply(
@@ -51,34 +108,40 @@ def load(
     elements.bus = [b + "-electricity" for b in elements.bus]
     elements["amount"] = elements["amount"] * 1000  # to MWh
 
-    building.write_elements(
-        "load.csv",
-        elements,
-        directory=os.path.join(datapackage_dir, "data/elements"),
-    )
+    path = os.path.join(datapackage_dir, "data", "elements")
+    building.write_elements("load.csv", elements, directory=path)
 
 
-def load_profile(buses, temporal, datapackage_dir,
-                 raw_data_path=fuchur.__RAW_DATA_PATH__):
+def opsd_load_profile(buses, year, datapackage_dir,
+                      raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
+    Parameter
+    ---------
+    buses: array like
+        List with buses represented by iso country code
+    year: integer
+        Demand year to select
+    datapackage_dir: string
+        Directory for tabular resource
+    raw_data_path: string
+        Path where raw data file `e-Highway_database_per_country-08022016.xlsx`
+        is located
     """
     filepath = os.path.join(raw_data_path, "time_series_60min_singleindex.csv")
     if os.path.exists(filepath):
         raw_data = pd.read_csv(filepath, index_col=[0], parse_dates=True)
     else:
-        logging.info(
+        raise FileNotFoundError(
             "File for OPSD loads does not exist. Did you download data?"
         )
 
     suffix = "_load_old"
 
-    year = str(temporal["demand_year"])
-
-    countries = buses["electricity"]
+    countries = buses
 
     columns = [c + suffix for c in countries]
 
-    timeseries = raw_data[year][columns]
+    timeseries = raw_data[str(year)][columns]
 
     if timeseries.isnull().values.any():
         raise ValueError(
@@ -91,6 +154,7 @@ def load_profile(buses, temporal, datapackage_dir,
     load_profile = timeseries / load_total
 
     sequences_df = pd.DataFrame(index=load_profile.index)
+
     elements = building.read_elements(
         "load.csv", directory=os.path.join(datapackage_dir, "data", "elements")
     )
@@ -110,7 +174,7 @@ def load_profile(buses, temporal, datapackage_dir,
         ]
 
     sequences_df.index = building.timeindex(
-        year=str(temporal["scenario_year"])
+        year=str(year)
     )
 
     building.write_sequences(
@@ -120,21 +184,21 @@ def load_profile(buses, temporal, datapackage_dir,
     )
 
 
-def generation(config, datapackage_dir):
-    """
-    """
-    techmap = {
+def generic_investment(buses, investment_technologies, year, wacc,
+    potential_source, datapackage_dir, cost_factor={}, techmap = {
         "ocgt": "dispatchable",
         "ccgt": "dispatchable",
+        "st": "dispatchable",
+        "ce": "dispatchable",
         "pv": "volatile",
         "wind_onshore": "volatile",
         "wind_offshore": "volatile",
         "biomass": "conversion",
         "lithium_battery": "storage",
-        "acaes": "storage",
-    }
+        "acaes": "storage"}):
+    """
+    """
 
-    wacc = config["cost"]["wacc"]
 
     technologies = pd.DataFrame(
         Package(
@@ -150,9 +214,7 @@ def generation(config, datapackage_dir):
         .reset_index("carrier")
         .apply(lambda x: dict({"carrier": x.carrier}, **x[0]), axis=1)
     )
-    technologies = technologies.loc[
-        config["temporal"]["scenario_year"]
-    ].to_dict()
+    technologies = technologies.loc[year].to_dict()
 
     potential = (
         Package(
@@ -164,28 +226,29 @@ def generation(config, datapackage_dir):
     )
     potential = pd.DataFrame(potential).set_index(["country", "tech"])
     potential = potential.loc[
-        potential["source"] == config["potential"]["renewables"]
+        potential["source"] == potential_source
     ].to_dict()
 
     for tech in technologies:
         technologies[tech]["capacity_cost"] = technologies[tech][
             "capacity_cost"
-        ] * config["cost"]["factor"].get(tech, 1)
+        ] * cost_factor.get(tech, 1)
         if "storage_capacity_cost" in technologies[tech]:
             technologies[tech]["storage_capacity_cost"] = technologies[tech][
                 "storage_capacity_cost"
-            ] * config["cost"]["factor"].get(tech, 1)
+            ] * cost_factor.get(tech, 1)
 
+    # TODO: replace by datapackage
     carrier = pd.read_csv(
         os.path.join(fuchur.__RAW_DATA_PATH__, "carrier.csv"), index_col=[0, 1]
-    ).loc[("base", config["temporal"]["scenario_year"])]
+    ).loc[("base", year)]
     carrier.set_index("carrier", inplace=True)
 
     elements = {}
 
-    for r in config["buses"]["electricity"]:
+    for r in buses:
         for tech, data in technologies.items():
-            if tech in config["technologies"]["investment"]:
+            if tech in investment_technologies:
 
                 element = data.copy()
                 elements[r + "-" + tech] = element
@@ -508,7 +571,7 @@ def hydro_generation(config, datapackage_dir):
         capacities.loc[rsv.index, " reservoir capacity [TWh]"] * 1e6,
     )  # to MWh
 
-    rsv = rsv.assign(**technologies["reservoir"])[rsv["capacity"] > 0].dropna()
+    rsv = rsv.assign(**technologies["rsv"])[rsv["capacity"] > 0].dropna()
     rsv["profile"] = rsv["bus"] + "-" + rsv["tech"] + "-profile"
     rsv[
         "efficiency"
@@ -553,12 +616,129 @@ def hydro_generation(config, datapackage_dir):
         )
 
 
-def excess(config, datapackage_dir):
+
+def nep_2019(year, datapackage_dir, bins=5, eaf=1,
+             raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
-    buses = building.read_elements(
-        "bus.csv", directory=os.path.join(datapackage_dir, "data/elements")
-    )
+
+    technologies = pd.DataFrame(
+        #Package('/home/planet/data/datapackages/technology-cost/datapackage.json')
+        Package('https://raw.githubusercontent.com/ZNES-datapackages/technology-cost/master/datapackage.json')
+        .get_resource('electricity').read(keyed=True)).set_index(
+            ['year', 'carrier', 'tech', 'parameter'])
+
+    carriers = pd.DataFrame(
+        #Package('/home/planet/data/datapackages/technology-cost/datapackage.json')
+        Package('https://raw.githubusercontent.com/ZNES-datapackages/technology-cost/master/datapackage.json')
+        .get_resource('carrier').read(keyed=True)).set_index(
+            ['year', 'carrier', 'parameter', 'unit']).sort_index()
+
+    sq = pd.read_csv(building.download_data(
+        "https://data.open-power-system-data.org/conventional_power_plants/"
+        "2018-12-20/conventional_power_plants_DE.csv",
+        directory=raw_data_path)
+        , encoding='utf-8')
+
+    sq.set_index("id", inplace=True)
+
+    nep = pd.read_excel(building.download_data(
+        "https://www.netzentwicklungsplan.de/sites/default/files/"
+        "paragraphs-files/Kraftwerksliste_%C3%9CNB_Entwurf_Szenariorahmen_2030_V2019.xlsx",
+        directory=raw_data_path)
+        , encoding='utf-8')
+
+    pp = nep.loc[nep["Nettonennleistung B2030 [MW]"] != 0]["BNetzA-ID"]
+    pp = list(set([i for i in pp.values if  not pd.isnull(i)]))
+    df = sq.loc[pp]
+
+    cond1 = df['country_code'] == 'DE'
+    cond2 = df['fuel'].isin(['Hydro'])
+    cond3 = (df['fuel'] == 'Other fuels') & (df['technology'] == 'Storage technologies')
+
+    df = df.loc[cond1 & ~cond2 & ~cond3, :].copy()
+
+    mapper = {('Biomass and biogas', 'Steam turbine'): ('biomass', 'st'),
+              ('Biomass and biogas', 'Combustion Engine'): ('biomass', 'ce'),
+              ('Hard coal', 'Steam turbine'): ('coal', 'st'),
+              ('Hard coal', 'Combined cycle'): ('coal', 'ccgt'),
+              ('Lignite', 'Steam turbine'): ('lignite', 'st'),
+              ('Natural gas', 'Gas turbine'): ('gas', 'ocgt'),
+              ('Natural gas', 'Steam turbine'): ('gas', 'st'),
+              ('Natural gas', 'Combined cycle'): ('gas', 'ccgt'),
+              ('Natural gas', 'Combustion Engine'): ('gas', 'st'),  # other technology
+              ('Nuclear', 'Steam turbine'): ('uranium', 'st'),
+              ('Oil', 'Steam turbine'): ('oil', 'st'),
+              ('Oil', 'Gas turbine'): ('oil', 'st'),
+              ('Oil', 'Combined cycle'): ('oil', 'st'),
+              ('Other fuels', 'Steam turbine'): ('waste', 'chp'),
+              ('Other fuels', 'Combined cycle'): ('gas', 'ccgt'),
+              ('Other fuels', 'Gas turbine'): ('gas', 'ocgt'),
+              ('Waste', 'Steam turbine'): ('waste', 'chp'),
+              ('Waste', 'Combined cycle'): ('waste', 'chp'),
+              ('Other fossil fuels', 'Steam turbine'): ('coal', 'st'),
+              ('Other fossil fuels', 'Combustion Engine'): ('gas', 'st'),
+              ('Mixed fossil fuels', 'Steam turbine'): ('gas', 'st')}
+
+    df['carrier'], df['tech'] = zip(*[mapper[tuple(i)] for i in df[['fuel', 'technology']].values])
+
+    etas = df.groupby(['carrier', 'tech']).mean()['efficiency_estimate'].to_dict()
+    index = df['efficiency_estimate'].isna()
+    df.loc[index, 'efficiency_estimate'] = \
+        [etas[tuple(i)] for i in df.loc[index, ('carrier', 'tech')].values]
+
+    index = df['carrier'].isin(['gas', 'coal', 'lignite'])
+
+    df.loc[index, 'bins'] = df[index].groupby(['carrier', 'tech'])['capacity_net_bnetza']\
+        .apply(lambda i: pd.qcut(i, bins, labels=False, duplicates='drop'))
+
+    df['bins'].fillna(0, inplace=True)
+
+    s = df.groupby(['country_code', 'carrier', 'tech', 'bins']).\
+        agg({'capacity_net_bnetza': sum, 'efficiency_estimate': np.mean})
+
+    elements = {}
+
+    co2 = carriers.at[(year, 'co2', 'cost', 'EUR/t'), 'value']
+
+    for (country, carrier, tech, bins), (capacity, eta) in s.iterrows():
+        name = country + '-' + carrier + '-' + tech + '-' + str(bins)
+
+        vom = technologies.at[(year, carrier, tech, 'vom'), 'value']
+        ef = carriers.at[(2015, carrier, 'emission-factor', 't (CO2)/MWh'), 'value']
+        fuel = carriers.at[(year, carrier, 'cost', 'EUR/MWh'), 'value']
+
+        marginal_cost = (fuel + vom + co2 * ef) / Decimal(eta)
+
+        output_parameters = {"max": eaf}
+
+        if carrier == "waste":
+            output_parameters.update({"summed_max": 2000})
+
+        element = {
+            'bus': country + '-electricity',
+            'tech': tech,
+            'carrier': carrier,
+            'capacity': capacity,
+            'marginal_cost': float(marginal_cost),
+            'output_parameters': json.dumps(output_parameters),
+            'type': 'dispatchable'}
+
+        elements[name] = element
+
+
+    building.write_elements(
+        'dispatchable.csv',
+        pd.DataFrame.from_dict(elements, orient='index'),
+        directory=os.path.join(datapackage_dir, 'data', 'elements'))
+
+
+def excess(datapackage_dir):
+    """
+    """
+    path = os.path.join(datapackage_dir, "data", "elements")
+    buses = building.read_elements("bus.csv", directory=path)
+
     buses.index.name = "bus"
     buses = buses.loc[buses['carrier'] == 'electricity']
 
@@ -569,18 +749,14 @@ def excess(config, datapackage_dir):
 
     elements.set_index("name", inplace=True)
 
-    building.write_elements(
-        "excess.csv",
-        elements,
-        directory=os.path.join(datapackage_dir, "data/elements"),
-    )
+    building.write_elements("excess.csv", elements, directory=path)
 
-def shortage(config, datapackage_dir):
+def shortage(datapackage_dir):
     """
     """
-    buses = building.read_elements(
-        "bus.csv", directory=os.path.join(datapackage_dir, "data/elements")
-    )
+    path = os.path.join(datapackage_dir, "data", "elements")
+    buses = building.read_elements("bus.csv", directory=path)
+
     buses = buses.loc[buses['carrier'] == 'electricity']
     buses.index.name = "bus"
 
@@ -588,12 +764,8 @@ def shortage(config, datapackage_dir):
     elements["capacity"] = 10e10
     elements["type"] = "shortage"
     elements["name"] = elements["bus"] + "-shortage"
-    elements["marginal_cost"] = 10e3
+    elements["marginal_cost"] = 300
 
     elements.set_index("name", inplace=True)
 
-    building.write_elements(
-        "shortage.csv",
-        elements,
-        directory=os.path.join(datapackage_dir, "data" , "elements"),
-    )
+    building.write_elements("shortage.csv", elements, directory=path)
