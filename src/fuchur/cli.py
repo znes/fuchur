@@ -39,7 +39,6 @@ def update(d, u):
 class Scenario(dict):
     @classmethod
     def from_path(cls, path):
-        print(path)
         fuchur.scenarios[path] = cls(
             datapackage.building.read_build_config(path)
         )
