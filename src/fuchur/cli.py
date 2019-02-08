@@ -25,11 +25,21 @@ from fuchur.scripts import (bus, capacity_factors, electricity, grid, heat,
 import fuchur
 import fuchur.scripts.compute
 
+import collections
+
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 # TODO: This definitely needs docstrings.
 class Scenario(dict):
     @classmethod
     def from_path(cls, path):
+        print(path)
         fuchur.scenarios[path] = cls(
             datapackage.building.read_build_config(path)
         )
@@ -45,11 +55,13 @@ class Scenario(dict):
                     scenario = copy.deepcopy(fuchur.scenarios[parent])
                 else:
                     scenario = copy.deepcopy(type(self).from_path(parent))
-                if "name" in scenario:
-                    del scenario["name"]
-                if "parents" in scenario:
-                    del scenario["parents"]
-                self.update(scenario)
+
+                # hackish, but necessary to get self (the child) right
+                # with all key/values of the parent and it's own key/value pairs
+                update(scenario, self)
+                update(self, scenario)
+
+
 
 
 def _download_rawdata():
