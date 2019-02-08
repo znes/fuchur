@@ -464,7 +464,8 @@ def _get_hydro_inflow(inflow_dir=None):
     return hydro
 
 
-def hydro_generation(config, datapackage_dir):
+def hydro_generation(config, datapackage_dir,
+                     raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
     countries, year = (
@@ -473,7 +474,7 @@ def hydro_generation(config, datapackage_dir):
     )
 
     capacities = pd.read_csv(
-        os.path.join(fuchur.__RAW_DATA_PATH__, "hydropower.csv"),
+        os.path.join(raw_data_path, "hydropower.csv"),
         index_col=["ctrcode"],
     )
     capacities.rename(index={"UK": "GB"}, inplace=True)  # for iso code
@@ -481,7 +482,7 @@ def hydro_generation(config, datapackage_dir):
     capacities.loc["CH"] = [8.8, 12, 1.9]  # add CH elsewhere
 
     inflows = _get_hydro_inflow(
-        inflow_dir=os.path.join(fuchur.__RAW_DATA_PATH__, "Hydro_Inflow")
+        inflow_dir=os.path.join(raw_data_path, "Hydro_Inflow")
     )
 
     inflows = inflows.loc[
@@ -506,7 +507,7 @@ def hydro_generation(config, datapackage_dir):
     technologies = technologies.loc[year].to_dict()
 
     ror_shares = pd.read_csv(
-        os.path.join(fuchur.__RAW_DATA_PATH__, "ror_ENTSOe_Restore2050.csv"),
+        os.path.join(raw_data_path, "ror_ENTSOe_Restore2050.csv"),
         index_col="Country Code (ISO 3166-1)",
     )["ror ENTSO-E\n+ Restore"]
 
