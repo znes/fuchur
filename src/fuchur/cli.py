@@ -71,82 +71,6 @@ def _download_rawdata():
         unzip_file="fuchur-raw-data/",
     )
 
-def _tyndp(config,ctx):
-    datapackage.processing.clean(
-        path=ctx.obj["datapackage_dir"], directories=["data", "resources"]
-    )
-
-    datapackage.building.initialize(
-        config=config, directory=ctx.obj["datapackage_dir"]
-    )
-
-    bus.add(config["buses"], ctx.obj["datapackage_dir"])
-
-    biomass.add(config["buses"], ctx.obj["datapackage_dir"])
-
-    grid.tyndp_grid(config["buses"]["electricity"], ctx.obj["datapackage_dir"])
-
-    electricity.tyndp_load(
-        config["buses"]["electricity"], config["tyndp"]["load"],
-        ctx.obj["datapackage_dir"])
-
-    electricity.opsd_load_profile(
-        config["buses"]["electricity"],
-        config["temporal"]["demand_year"],
-        config["temporal"]["scenario_year"],
-        ctx.obj["datapackage_dir"])
-
-    electricity.tyndp_generation(
-        set(config["buses"]["electricity"]) - set(['DE']),
-        config['tyndp']['generation'],
-        config["temporal"]["scenario_year"],
-        ctx.obj["datapackage_dir"])
-
-    electricity.nep_2019(
-        config["temporal"]["scenario_year"], ctx.obj["datapackage_dir"])
-
-    electricity.excess(ctx.obj["datapackage_dir"])
-
-    electricity.shortage(ctx.obj["datapackage_dir"])
-
-    electricity.hydro_generation(config, ctx.obj["datapackage_dir"])
-
-    capacity_factors.pv(
-        config["buses"]["electricity"],
-        config["temporal"]["weather_year"],
-        config["temporal"]["scenario_year"],
-        ctx.obj["datapackage_dir"])
-
-    capacity_factors.wind(
-        config["buses"]["electricity"],
-        config["temporal"]["weather_year"],
-        config["temporal"]["scenario_year"],
-        ctx.obj["datapackage_dir"])
-
-    datapackage.building.infer_metadata(
-        package_name=config["name"],
-        foreign_keys={
-            "bus": [
-                "volatile",
-                "dispatchable",
-                "storage",
-                "heat_storage",
-                "load",
-                "ror",
-                "reservoir",
-                "phs",
-                "excess",
-                "shortage",
-                "boiler",
-                "commodity",
-            ],
-            "profile": ["load", "volatile", "heat_load", "ror", "reservoir"],
-            "from_to_bus": ["link", "conversion", "line"],
-            "chp": ["backpressure", "extraction"],
-        },
-        path=ctx.obj["datapackage_dir"],
-    )
-
 def _construct(config, ctx):
     """
 
@@ -269,16 +193,6 @@ def construct(ctx, config):
     else:
         config = Scenario.from_path(config)
     _construct(config, ctx)
-
-@cli.command()
-@click.argument("config", type=str, default="config.json")
-@click.pass_context
-def construct_tyndp(ctx, config):
-    if config in fuchur.scenarios:
-        config = fuchur.scenarios[config]
-    else:
-        config = Scenario.from_path(config)
-    _tyndp(config, ctx)
 
 
 
