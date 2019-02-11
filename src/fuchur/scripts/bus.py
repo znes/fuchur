@@ -18,9 +18,17 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
 
-    filepath = os.path.join(
-        raw_data_path, "NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp"
-    )
+    filepath = building.download_data(
+        'http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/'
+        'NUTS_2013_10M_SH.zip',
+        unzip_file='NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.shp',
+        directory=raw_data_path)
+
+    building.download_data(
+        'http://ec.europa.eu/eurostat/cache/GISCO/geodatafiles/'
+        'NUTS_2013_10M_SH.zip',
+        unzip_file='NUTS_2013_10M_SH/data/NUTS_RG_10M_2013.dbf',
+        directory=raw_data_path)
 
     if not os.path.exists(filepath):
         print("Shapefile data not found. Did you download raw data?")

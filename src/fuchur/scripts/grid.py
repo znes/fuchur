@@ -57,7 +57,7 @@ def _remove_links(row):
         return True
 
 
-def ehighway_grid(buses, year, datapackage_dir, scenario = "100% RES",
+def ehighway(buses, year, datapackage_dir, scenario = "100% RES",
                   raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     Parameter
@@ -136,7 +136,7 @@ def ehighway_grid(buses, year, datapackage_dir, scenario = "100% RES",
     )
 
 
-def tyndp_grid(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
+def tyndp(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     Parameter
     ---------
