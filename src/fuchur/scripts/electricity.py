@@ -513,7 +513,7 @@ def hydro_generation(config, datapackage_dir,
 
     # ror
     ror = pd.DataFrame(index=countries)
-    ror["type"], ror["tech"], ror["bus"], ror["capacity"] = (
+    ror["type"], ror["tech"], ror["bus"], ror["capacity"], ror['carrier'] = (
         "volatile",
         "ror",
         ror.index.astype(str) + "-electricity",
@@ -525,6 +525,7 @@ def hydro_generation(config, datapackage_dir,
         )
         * ror_shares[ror.index]
         * 1000,
+        'hydro'
     )
 
     ror = ror.assign(**technologies["ror"])[ror["capacity"] > 0].dropna()
@@ -538,8 +539,7 @@ def hydro_generation(config, datapackage_dir,
     # phs
     phs = pd.DataFrame(index=countries)
     phs["type"], phs["tech"], phs["bus"], phs["loss"], phs["capacity"], phs[
-        "marginal_cost"
-    ] = (
+        "marginal_cost"], phs['carrier'] = (
         "storage",
         "phs",
         phs.index.astype(str) + "-electricity",
@@ -547,6 +547,7 @@ def hydro_generation(config, datapackage_dir,
         capacities.loc[phs.index, " installed pumped hydro capacities [GW]"]
         * 1000,
         0.0000001,
+        "hydro"
     )
 
     phs["storage_capacity"] = phs["capacity"] * 6  # Brown et al.
@@ -557,8 +558,7 @@ def hydro_generation(config, datapackage_dir,
     # other hydro / reservoir
     rsv = pd.DataFrame(index=countries)
     rsv["type"], rsv["tech"], rsv["bus"], rsv["loss"], rsv["capacity"], rsv[
-        "storage_capacity"
-    ] = (
+        "storage_capacity"], rsv['carrier'] = (
         "reservoir",
         "reservoir",
         rsv.index.astype(str) + "-electricity",
@@ -572,6 +572,7 @@ def hydro_generation(config, datapackage_dir,
         * (1 - ror_shares[ror.index])
         * 1000,
         capacities.loc[rsv.index, " reservoir capacity [TWh]"] * 1e6,
+        "hydro"
     )  # to MWh
 
     rsv = rsv.assign(**technologies["rsv"])[rsv["capacity"] > 0].dropna()
@@ -605,7 +606,7 @@ def hydro_generation(config, datapackage_dir,
     filenames = ["ror.csv", "phs.csv", "reservoir.csv"]
 
     for fn, df in zip(filenames, [ror, phs, rsv]):
-        df.index = df.index.astype(str) + "-" + df["tech"]
+        df.index = df.index.astype(str) + "-hydro-" + df["tech"]
         df["capacity_cost"] = df.apply(
             lambda x: annuity(
                 float(x["capacity_cost"]) * 1000,
@@ -739,23 +740,21 @@ def nep_2019(year, datapackage_dir, bins=2, eaf=0.95,
     elements =  {}
 
     b = 'DE'
-    for carrier in ['wind_offshore', 'wind_onshore', 'solar', 'biomass']:
+    for carrier, tech in [('wind', 'offshore'), ('wind', 'onshore'),
+    ('solar', 'pv'), ('biomass', 'ce')]:
         element = {}
-        if carrier in ['wind_offshore', 'wind_onshore', 'solar']:
-            if "on" in carrier:
-                profile = b + "-wind-on-profile"
-                tech = 'wind-on'
+        if carrier in ['wind', 'solar']:
+            if "onshore" == tech:
+                profile = b + "-onshore-profile"
                 capacity = 85500
-            elif "off" in carrier:
-                profile = b + "-wind-off-profile"
-                tech = 'wind-off'
+            elif "offshore" == tech:
+                profile = b + "-offshore-profile"
                 capacity = 17000
-            elif "solar" in carrier:
+            elif "pv" in tech:
                 profile = b + "-pv-profile"
-                tech = 'pv'
                 capacity = 104500
 
-            elements[b + "-" + tech] = element
+            elements["-".join([b, carrier, tech])] = element
             e = {
                 "bus": b + "-electricity",
                 "tech": tech,
@@ -769,7 +768,7 @@ def nep_2019(year, datapackage_dir, bins=2, eaf=0.95,
 
 
         elif carrier == "biomass":
-            elements[b + "-" + carrier] = element
+            elements["-".join([b, carrier, tech])] = element
 
             element.update({
                 "carrier": carrier,
@@ -781,14 +780,27 @@ def nep_2019(year, datapackage_dir, bins=2, eaf=0.95,
                 "carrier_cost": float(
                     carriers.at[(2030, carrier, 'cost'), 'value']
                 ),
-                "tech": carrier,
+                "tech": 'ce',
                 }
             )
+
+    elements['DE-battery'] =    {
+            "storage_capacity": 8 * 10000,  # 8 h
+            "capacity": 10000,
+            "bus": "DE-electricity",
+            "tech": 'battery',
+            "carrier": 'electricity',
+            "type": "storage",
+            "efficiency": 0.9
+            ** 0.5,  # convert roundtrip to input / output efficiency
+            "marginal_cost": 0.0000001,
+            "loss": 0.01
+        }
 
 
     df = pd.DataFrame.from_dict(elements, orient="index")
 
-    for element_type in ['volatile', 'conversion']:
+    for element_type in ['volatile', 'conversion', 'storage']:
         building.write_elements(
             element_type + ".csv",
             df.loc[df["type"] == element_type].dropna(how="all", axis=1),
@@ -860,13 +872,13 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
 
             if carrier in ['wind', 'solar']:
                 if "wind" in carrier:
-                    profile = b + "-wind-on-profile"
-                    tech = 'wind-on'
+                    profile = b + "-onshore-profile"
+                    tech = 'onshore'
                 elif "solar" in carrier:
                     profile = b + "-pv-profile"
                     tech = 'pv'
 
-                elements[b + "-" + tech] = element
+                elements['-'.join([b, carrier, tech])] = element
                 e = {
                     "bus": b + "-electricity",
                     "tech": tech,
@@ -879,7 +891,11 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
                 element.update(e)
 
             elif carrier in ['gas', 'coal', 'lignite', 'oil', 'uranium']:
-                elements[b + "-" + carrier] = element
+                if carrier == 'gas':
+                    tech = 'gt'
+                else:
+                    tech = 'st'
+                elements['-'.join([b, carrier, tech])] = element
                 marginal_cost = float(
                     carriers.at[(scenario_year, carrier, 'cost'), 'value']
                     + carriers.at[(2014, carrier, 'emission-factor'), 'value']
@@ -895,7 +911,7 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
                     "output_parameters": json.dumps(
                         {"max": max[carrier]}
                     ),
-                    "tech": carrier,
+                    "tech": tech,
                 }
             )
 
@@ -903,12 +919,12 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
                 elements[b + "-" + carrier] = element
 
                 element.update({
-                    "carrier": carrier,
+                    "carrier": 'other',
                     "capacity": x.at[b, carrier],
                     "bus": b + "-electricity",
                     "type": "dispatchable",
                     "marginal_cost": 0,
-                    "tech": carrier,
+                    "tech": 'other',
                     "output_parameters": json.dumps(
                         {"summed_max": 2000}
                     )
@@ -916,7 +932,7 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
             )
 
             elif carrier == "biomass":
-                elements[b + "-" + carrier] = element
+                elements["-".join([b, carrier, 'ce'])] = element
 
                 element.update({
                     "carrier": carrier,
@@ -928,7 +944,7 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
                     "carrier_cost": float(
                         carriers.at[(2030, carrier, 'cost'), 'value']
                     ),
-                    "tech": carrier,
+                    "tech": 'ce',
                     }
                 )
 

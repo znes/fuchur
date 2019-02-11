@@ -26,9 +26,11 @@ def pv(buses, weather_year, scenario_year, datapackage_dir,
         Path where raw data file `ninja_pv_europe_v1.1_merra2.csv`
         is located
     """
-    filepath = os.path.join(
-        raw_data_path, "ninja_pv_europe_v1.1_merra2.csv"
-    )
+    filepath = building.download_data(
+        "https://www.renewables.ninja/static/downloads/ninja_europe_pv_v1.1.zip",
+        unzip_file="ninja_pv_europe_v1.1_merra2.csv",
+        directory=raw_data_path)
+
     year = str(weather_year)
 
     countries = buses
@@ -75,14 +77,15 @@ def wind(buses, weather_year, scenario_year, datapackage_dir,
         and `ninja_wind_europe_v1.1_current_national.csv`
         is located
     """
-    off_filepath = os.path.join(
-        raw_data_path,
-        "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
-    )
+    near_term_path = building.download_data(
+        "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
+        unzip_file= "ninja_wind_europe_v1.1_current_national.csv",
+        directory=raw_data_path)
 
-    near_term_path = os.path.join(
-        raw_data_path, "ninja_wind_europe_v1.1_current_national.csv"
-    )
+    off_filepath = building.download_data(
+        "https://www.renewables.ninja/static/downloads/ninja_europe_wind_v1.1.zip",
+        unzip_file= "ninja_wind_europe_v1.1_future_nearterm_on-offshore.csv",
+        directory=raw_data_path)
 
     year = str(weather_year)
 
@@ -107,9 +110,9 @@ def wind(buses, weather_year, scenario_year, datapackage_dir,
         if [
             col for col in offshore_data.columns if c + "_OFF" in col
         ] and c in NorthSea:
-            sequences_df[c + "-wind-off-profile"] = offshore_data[c + "_OFF"]
+            sequences_df[c + "-offshore-profile"] = offshore_data[c + "_OFF"]
 
-        sequence_name = c + "-wind-on-profile"
+        sequence_name = c + "-onshore-profile"
         sequences_df[sequence_name] = near_term.loc[year][c].values
 
     sequences_df.index = building.timeindex(
