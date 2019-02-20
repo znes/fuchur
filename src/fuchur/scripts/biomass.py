@@ -34,8 +34,8 @@ def add(buses, datapackage_dir):
 
     if buses.get("biomass"):
         for b in buses["biomass"]:
-            bus_name = b + "-biomass-bus"
-            commodity_name = b + "-biomass-commodity"
+            bus_name = '-'.join([b,"biomass", "bus"])
+            commodity_name = '-'.join([b, "biomass", "commodity"])
 
             commodities[commodity_name] = {
                 "type": "dispatchable",

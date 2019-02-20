@@ -14,8 +14,17 @@ import pandas as pd
 import fuchur
 
 
-def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
+def electricity(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
+    Parameters
+    ----------
+    buses: dict
+        Dictionary with two keys: decentral and central and their values
+        beeing the names of the buses
+    datapackage_dir: str
+        Directory of datapackage where resources are stored
+    raw_data_path: str
+        Path to directory where raw data can be found
     """
 
     filepath = building.download_data(
@@ -41,14 +50,13 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     el_buses = pd.Series(name="geometry")
     el_buses.index.name = "name"
 
-    for r in buses["electricity"]:
+    for r in buses:
         el_buses[r + "-electricity"] = nuts0[r]
     building.write_geometries(
         "bus.geojson",
         el_buses,
-        os.path.join(datapackage_dir, "data/geometries"),
+        os.path.join(datapackage_dir, "data", "geometries"),
     )
-
     # Add electricity buses
     bus_elements = {}
     for b in el_buses.index:
@@ -59,8 +67,26 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
             "balanced": True,
         }
 
+    building.write_elements(
+        "bus.csv",
+        pd.DataFrame.from_dict(bus_elements, orient="index"),
+        os.path.join(datapackage_dir, "data", "elements"),
+    )
+
+
+def heat(buses, datapackage_dir):
+    """
+    Parameters
+    ----------
+    buses: dict
+        Dictionary with two keys: decentral and central and their values
+        beeing the names of the buses
+    datapackage_dir: str
+        Directory of datapackage where resources are stored
+    """
+    bus_elements = {}
     # Add heat buses per  sub_bus and region (r)
-    for sub_bus, regions in buses["heat"].items():
+    for sub_bus, regions in buses.items():
         for region in regions:
             bus_elements["-".join([region, "heat", sub_bus])] = {
                 "type": "bus",
@@ -72,5 +98,5 @@ def add(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     building.write_elements(
         "bus.csv",
         pd.DataFrame.from_dict(bus_elements, orient="index"),
-        os.path.join(datapackage_dir, "data/elements"),
+        os.path.join(datapackage_dir, "data", "elements"),
     )

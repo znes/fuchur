@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 """
-import json
 import os
 
 from datapackage import Package
-from decimal import Decimal
-import numpy as np
 
 from oemof.tabular.datapackage import building
 from oemof.tools.economics import annuity

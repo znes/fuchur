@@ -5,10 +5,13 @@ import json
 import os
 
 from datapackage import Package
+from decimal import Decimal
+
+import pandas as pd
+import numpy as np
 
 from oemof.tabular.datapackage import building
 from oemof.tools.economics import annuity
-import pandas as pd
 
 import fuchur
 
@@ -370,7 +373,7 @@ def tyndp_generation(buses, vision, scenario_year, datapackage_dir,
 
 
 
-def nep_2019(year, datapackage_dir, bins=2, eaf=0.95,
+def nep_2019(year, datapackage_dir, scenario='B2030', bins=2, eaf=0.95,
              raw_data_path=fuchur.__RAW_DATA_PATH__):
     """
     """
@@ -401,7 +404,7 @@ def nep_2019(year, datapackage_dir, bins=2, eaf=0.95,
         directory=raw_data_path)
         , encoding='utf-8')
 
-    pp = nep.loc[nep["Nettonennleistung B2030 [MW]"] != 0]["BNetzA-ID"]
+    pp = nep.loc[nep["Nettonennleistung " + scenario + " [MW]"] != 0]["BNetzA-ID"]
     pp = list(set([i for i in pp.values if  not pd.isnull(i)]))
     df = sq.loc[pp]
 

@@ -145,8 +145,7 @@ def tyndp(buses, datapackage_dir, raw_data_path=fuchur.__RAW_DATA_PATH__):
     datapackage_dir: string
         Directory for tabular resource
     raw_data_path: string
-        Path where raw data file `e-Highway_database_per_country-08022016.xlsx`
-        is located
+        Path where raw data file is located
     """
     filepath = building.download_data(
         "https://www.entsoe.eu/Documents/TYNDP%20documents/TYNDP2018/"
